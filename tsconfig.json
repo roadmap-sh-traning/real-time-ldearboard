@@ -1,0 +1,15 @@
+{
+  "extends": "fastify-tsconfig",
+  "compilerOptions": {
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"],
+   "baseUrl": "./",
+  "paths": {
+      "@src/*": ["src/*"],
+      "@type/*": ["src/type/*"],
+      "@lib/*": ["src/lib/*"],
+      "@test/*": ["test/*"],
+   }
+}
