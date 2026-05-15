@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: tic-tac-toe-postgres
+    container_name: real-time-lb-pg
     restart: unless-stopped
     environment:
       POSTGRES_DB: real-time-lb
