@@ -7,7 +7,7 @@ export const loginSchema = Type.Object({
 
 export const loginResponseSchema = Type.Object({
   refreshToken: Type.String(),
-  token: Type.String(),
+  accessToken: Type.String(),
 });
 
 export type LoginBody = Static<typeof loginSchema>;

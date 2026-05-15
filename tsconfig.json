@@ -2,14 +2,14 @@
   "extends": "fastify-tsconfig",
   "compilerOptions": {
     "outDir": "dist",
-    "sourceMap": true
+    "sourceMap": true,
   },
-  "include": ["src/**/*.ts"],
-   "baseUrl": "./",
+  "include": ["src/**/*.ts", "src/types/fastify.d.ts"],
+  "baseUrl": "./",
   "paths": {
-      "@src/*": ["src/*"],
-      "@type/*": ["src/type/*"],
-      "@lib/*": ["src/lib/*"],
-      "@test/*": ["test/*"],
-   }
+    "@src/*": ["src/*"],
+    "@type/*": ["src/type/*"],
+    "@lib/*": ["src/lib/*"],
+    "@test/*": ["test/*"],
+  },
 }

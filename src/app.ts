@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
 import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
+import fastifyBcrypt from "fastify-bcrypt";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
 export interface AppOptions
   extends FastifyServerOptions, Partial<AutoloadPluginOptions> {}
@@ -8,10 +10,16 @@ export interface AppOptions
 const options: AppOptions = {};
 
 const app: FastifyPluginAsync<AppOptions> = async (
-  fastify,
+  rawFastify,
   opts,
 ): Promise<void> => {
+  const fastify = rawFastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // Place here your custom code!
+  //
+  fastify.register(fastifyBcrypt, {
+    saltWorkFactor: 12,
+  });
 
   // Do not touch the following lines
 

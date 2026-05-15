@@ -25,6 +25,7 @@ export const refreshTokens = pgTable(
       .notNull(),
     jti: text("jti").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
   },
   (t) => [uniqueIndex("refresh_token_jti_idx").on(t.jti)],
 );

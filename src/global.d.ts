@@ -1,14 +1,29 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "./schema";
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-
+import { JWT } from "@fastify/jwt";
+import {
+  FastifyInstance,
+  RawServerDefault,
+  FastifyRawRequest,
+  FastifyRawReply,
+  FastifyBaseLogger,
+} from "fastify";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 declare module "fastify" {
+  interface FastifyTypeProviderDefault extends TypeBoxTypeProvider {}
+
   interface FastifyInstance {
-    TypeProvider: import("@fastify/type-provider-typebox").TypeBoxTypeProvider;
     db: NodePgDatabase<typeof schema>;
     authenticate: (
       request: FastifyRequest,
       reply: FastifyReply,
     ) => Promise<void>;
+    jwt: JWT;
   }
 }
+
+export type AppInstance = FastifyInstance<
+  RawServerDefault,
+  FastifyRawRequest,
+  FastifyRawReply,
+  FastifyBaseLogger,
+  TypeBoxTypeProvider
+>;
