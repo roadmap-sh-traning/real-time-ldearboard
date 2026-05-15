@@ -1,0 +1,19 @@
+table refresh_tokens {
+  id serial [pk, not null, increment]
+  token text [not null]
+  user_id integer [not null]
+  jti text [not null]
+  created_at timestamp [default: `now()`]
+
+  indexes {
+    jti [name: 'refresh_token_jti_idx', unique]
+  }
+}
+
+table users {
+  id serial [pk, not null, increment]
+  name text [not null]
+  email text [not null]
+  password text [not null]
+  created_at timestamp [default: `now()`]
+}
