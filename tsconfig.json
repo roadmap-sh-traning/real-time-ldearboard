@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "sourceMap": true,
+    "moduleResolution": "nodenext",
   },
   "include": ["src/**/*.ts", "src/types/fastify.d.ts"],
   "baseUrl": "./",

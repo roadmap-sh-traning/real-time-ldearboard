@@ -3,6 +3,7 @@ import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
 import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
 import fastifyBcrypt from "fastify-bcrypt";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import fastifyRoutes from "@fastify/routes";
 
 export interface AppOptions
   extends FastifyServerOptions, Partial<AutoloadPluginOptions> {}
@@ -19,6 +20,12 @@ const app: FastifyPluginAsync<AppOptions> = async (
   //
   fastify.register(fastifyBcrypt, {
     saltWorkFactor: 12,
+  });
+
+  await fastify.register(fastifyRoutes);
+
+  fastify.addHook("onReady", async () => {
+    console.log("All Registered Routes:", fastify.routes);
   });
 
   // Do not touch the following lines
