@@ -7,6 +7,9 @@ import {
   FastifyBaseLogger,
 } from "fastify";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import "@fastify/jwt";
+import { JwtPayload } from "./schemas";
+
 declare module "fastify" {
   interface FastifyTypeProviderDefault extends TypeBoxTypeProvider {}
 
@@ -17,6 +20,13 @@ declare module "fastify" {
       reply: FastifyReply,
     ) => Promise<void>;
     jwt: JWT;
+  }
+}
+
+declare module "@fastify/jwt" {
+  interface FastifyJWT {
+    payload: { sub: number; email: string };
+    user: JwtPayload;
   }
 }
 

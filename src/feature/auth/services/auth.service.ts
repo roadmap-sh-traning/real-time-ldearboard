@@ -66,8 +66,6 @@ export class AuthService {
       throw AUTH_ERROR.REFRESH_TOKEN_INVALID;
     }
 
-    console.log(jwtPayload);
-
     const refreshTokenRecord = await this.authRepository.findRefreshTokenByJti(
       jwtPayload.jti,
     );
