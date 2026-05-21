@@ -74,8 +74,6 @@ export class AuthService {
       throw AUTH_ERROR.REFRESH_TOKEN_EXPIRED;
     }
 
-    console.log(refreshTokenRecord.expiresAt, new Date(), " new Date()");
-
     if (refreshTokenRecord.expiresAt < new Date()) {
       throw AUTH_ERROR.REFRESH_TOKEN_EXPIRED;
     }
