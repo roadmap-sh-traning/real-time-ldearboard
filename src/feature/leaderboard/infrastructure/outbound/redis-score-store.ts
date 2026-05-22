@@ -1,6 +1,8 @@
 import { AppInstance } from "../../../../global";
 import { ScoreStorePort } from "../../application/ports/outbound/score-store.port";
 
+const LEADERBOARD_KEY = "leaderboard:global";
+
 export class RedisScoreStore implements ScoreStorePort {
   private client: AppInstance;
 
@@ -9,12 +11,12 @@ export class RedisScoreStore implements ScoreStorePort {
   }
 
   async saveScore(playerId: string, score: number): Promise<void> {
-    this.client.redis.zincrby("leaderboard", score, playerId);
+    await this.client.redis.zadd(LEADERBOARD_KEY, score, playerId);
   }
 
   async getLeaderboard() {
     const result = await this.client.redis.zrevrange(
-      "leaderboard",
+      LEADERBOARD_KEY,
       0,
       100,
       "WITHSCORES",
@@ -34,15 +36,9 @@ export class RedisScoreStore implements ScoreStorePort {
   }
 
   async currentUser(playerId: string) {
-    const rank = await this.client.redis.zrevrank(
-      "leaderboard:global",
-      playerId,
-    );
+    const rank = await this.client.redis.zrevrank(LEADERBOARD_KEY, playerId);
 
-    const score = await this.client.redis.zscore(
-      "leaderboard:global",
-      playerId,
-    );
+    const score = await this.client.redis.zscore(LEADERBOARD_KEY, playerId);
 
     return {
       rank: rank !== null ? rank + 1 : null,

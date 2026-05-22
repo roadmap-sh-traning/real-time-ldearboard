@@ -1,3 +1,5 @@
+import { LeaderboardSnapshot } from "../../../domain/leaderboard-snapshot";
+
 export interface LeaderboardBroadcasterPort {
-  broadcastLeaderboard(): Promise<void>;
+  push(snapshot: LeaderboardSnapshot): Promise<void>;
 }

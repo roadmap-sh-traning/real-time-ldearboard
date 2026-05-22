@@ -12,7 +12,17 @@ export default fp(async (fastify) => {
 
   fastify.decorate("authenticate", async (request, reply) => {
     try {
-      await request.jwtVerify();
+      const query = request.query as { token?: string };
+      const header = request.headers.authorization;
+      const token =
+        query.token ??
+        (header?.startsWith("Bearer ") ? header.slice(7) : undefined);
+
+      if (token) {
+        request.user = fastify.jwt.verify(token);
+      } else {
+        await request.jwtVerify();
+      }
     } catch (err) {
       reply.send(err);
     }

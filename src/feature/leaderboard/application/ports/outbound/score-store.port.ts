@@ -1,7 +1,7 @@
+import { LeaderboardEntry } from "../../../domain/leaderboard-entry";
+
 export interface ScoreStorePort {
-  getLeaderboard(): Promise<
-    Array<{ playerId: string; score: number; rank: number }>
-  >;
+  getLeaderboard(): Promise<LeaderboardEntry[]>;  
   saveScore(playerId: string, score: number): Promise<void>;
   currentUser(
     playerId: string,
