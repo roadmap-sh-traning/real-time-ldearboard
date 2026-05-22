@@ -45,4 +45,6 @@ export type AppInstance = FastifyInstance<
   FastifyRawReply,
   FastifyBaseLogger,
   TypeBoxTypeProvider
->;
+> & {
+  redis: Redis;
+};

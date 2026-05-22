@@ -4,6 +4,7 @@ import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
 import fastifyBcrypt from "fastify-bcrypt";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import fastifyRoutes from "@fastify/routes";
+import fastifyRedis from "@fastify/redis";
 
 export interface AppOptions
   extends FastifyServerOptions, Partial<AutoloadPluginOptions> {}
@@ -26,6 +27,11 @@ const app: FastifyPluginAsync<AppOptions> = async (
 
   fastify.addHook("onReady", async () => {
     console.log("All Registered Routes:", fastify.routes);
+  });
+
+  await fastify.register(fastifyRedis, {
+    host: process.env.REDIS_HOST || "localhost",
+    port: Number(process.env.REDIS_PORT) || 6379,
   });
 
   // Do not touch the following lines
