@@ -15,6 +15,13 @@
       "when": 1779649849365,
       "tag": "0001_open_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779651818455,
+      "tag": "0002_modern_hedge_knight",
+      "breakpoints": true
     }
   ]
 }

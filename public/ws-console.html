@@ -41,25 +41,34 @@
         color: var(--muted);
         font-size: 0.875rem;
       }
-      .auth-bar {
+      .auth-section {
+        margin-top: 1rem;
         display: grid;
-        grid-template-columns: 120px 1fr auto;
+        gap: 0.75rem;
+        max-width: 960px;
+      }
+      .auth-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 0.5rem;
-        align-items: center;
-        margin-top: 0.75rem;
-        max-width: 900px;
+        align-items: end;
+      }
+      .auth-row.wide {
+        grid-template-columns: 100px 1fr auto auto;
       }
       label {
         font-size: 0.8rem;
         color: var(--muted);
+        display: block;
+        margin-bottom: 0.2rem;
       }
       input,
-      select,
-      button,
-      textarea {
+      button {
         font: inherit;
       }
       input[type="text"],
+      input[type="email"],
+      input[type="password"],
       input[type="number"] {
         width: 100%;
         padding: 0.5rem 0.65rem;
@@ -76,6 +85,7 @@
         font-weight: 600;
         background: var(--accent);
         color: white;
+        white-space: nowrap;
       }
       button.secondary {
         background: var(--border);
@@ -88,12 +98,20 @@
         opacity: 0.45;
         cursor: not-allowed;
       }
+      .user-chip {
+        font-size: 0.8rem;
+        color: var(--muted);
+        padding: 0.35rem 0;
+      }
+      .user-chip strong {
+        color: var(--text);
+      }
       main {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
         padding: 1rem 1.25rem;
-        min-height: calc(100vh - 140px);
+        min-height: calc(100vh - 220px);
       }
       @media (max-width: 900px) {
         main {
@@ -106,7 +124,7 @@
         border-radius: 10px;
         display: flex;
         flex-direction: column;
-        min-height: 420px;
+        min-height: 480px;
       }
       .panel-header {
         padding: 0.75rem 1rem;
@@ -145,6 +163,33 @@
       }
       .field.small input {
         width: 90px;
+      }
+      .lb-table-wrap {
+        padding: 0 1rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        max-height: 220px;
+        overflow: auto;
+      }
+      .lb-table-wrap:empty {
+        display: none;
+      }
+      table.lb {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+      }
+      table.lb th,
+      table.lb td {
+        text-align: left;
+        padding: 0.35rem 0.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+      table.lb th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      table.lb tr.you td {
+        background: rgba(59, 130, 246, 0.12);
       }
       .events {
         flex: 1;
@@ -198,29 +243,59 @@
         padding: 0 1.25rem 1rem;
         color: var(--muted);
         font-size: 0.8rem;
+        line-height: 1.6;
       }
       .reference code {
         background: var(--panel);
         padding: 0.1rem 0.35rem;
         border-radius: 4px;
       }
+      .reference ol {
+        margin: 0.5rem 0 0;
+        padding-left: 1.25rem;
+      }
     </style>
   </head>
   <body>
     <header>
       <h1>Real-time Leaderboard — WebSocket Console</h1>
-      <p>Connect to game and leaderboard sockets. All incoming and outgoing messages are logged below.</p>
-      <div class="auth-bar">
-        <label for="baseUrl">Server</label>
-        <input id="baseUrl" type="text" value="ws://127.0.0.1:3000" />
-        <span></span>
-        <label for="jwt">JWT token</label>
-        <input
-          id="jwt"
-          type="text"
-          placeholder="Paste token from POST /auth/login"
-        />
-        <button type="button" id="saveToken" class="secondary">Save</button>
+      <p>
+        Dev UI at <code>/dev/ws</code>. Login, connect both sockets, join a match,
+        submit scores — leaderboard updates every ~250ms.
+      </p>
+
+      <div class="auth-section">
+        <div class="auth-row wide">
+          <div class="field">
+            <label for="httpBase">HTTP</label>
+            <input id="httpBase" type="text" value="http://127.0.0.1:3000" />
+          </div>
+          <div class="field">
+            <label for="jwt">JWT (access token)</label>
+            <input id="jwt" type="text" placeholder="Filled by login or paste manually" />
+          </div>
+          <button type="button" id="saveToken" class="secondary">Save token</button>
+          <button type="button" id="connectBoth">Connect both WS</button>
+        </div>
+
+        <div class="auth-row">
+          <div class="field">
+            <label for="regName">Name</label>
+            <input id="regName" type="text" placeholder="Alice" />
+          </div>
+          <div class="field">
+            <label for="regEmail">Email</label>
+            <input id="regEmail" type="email" placeholder="alice@example.com" />
+          </div>
+          <div class="field">
+            <label for="regPassword">Password</label>
+            <input id="regPassword" type="password" placeholder="••••••••" />
+          </div>
+          <button type="button" id="btnRegister" class="secondary">Register</button>
+          <button type="button" id="btnLogin">Login</button>
+        </div>
+
+        <p class="user-chip" id="userChip">Not logged in — register or login to get a token.</p>
       </div>
     </header>
 
@@ -243,22 +318,14 @@
             <label>delta</label>
             <input id="delta" type="number" value="10" />
           </div>
-          <button type="button" id="sendJoin" class="secondary" disabled>
-            join
-          </button>
-          <button type="button" id="sendScore" class="secondary" disabled>
-            score
-          </button>
-          <button type="button" id="sendLeave" class="secondary" disabled>
-            leave
-          </button>
+          <button type="button" id="sendJoin" class="secondary" disabled>join</button>
+          <button type="button" id="sendScore" class="secondary" disabled>score</button>
+          <button type="button" id="sendLeave" class="secondary" disabled>leave</button>
         </div>
         <div class="events" id="gameEvents"></div>
         <div class="log-footer">
           <span id="gameCount">0 events</span>
-          <button type="button" class="secondary" data-clear="gameEvents">
-            Clear
-          </button>
+          <button type="button" class="secondary" data-clear="gameEvents">Clear</button>
         </div>
       </section>
 
@@ -273,47 +340,75 @@
             Disconnect
           </button>
         </div>
+        <div class="lb-table-wrap" id="lbTableWrap"></div>
         <div class="events" id="lbEvents"></div>
         <div class="log-footer">
           <span id="lbCount">0 events</span>
-          <button type="button" class="secondary" data-clear="lbEvents">
-            Clear
-          </button>
+          <button type="button" class="secondary" data-clear="lbEvents">Clear</button>
         </div>
       </section>
     </main>
 
-    <p class="reference">
-      <strong>Server → client (game):</strong>
-      <code>player.joined</code>,
-      <code>player.left</code>,
-      <code>score.updated</code>,
-      <code>error</code>
-      &nbsp;|&nbsp;
-      <strong>Server → client (leaderboard):</strong>
-      <code>snapshot</code>
-      &nbsp;|&nbsp;
-      <strong>Client → server (game only):</strong>
-      <code>join</code>,
-      <code>score</code>,
-      <code>leave</code>
-    </p>
+    <div class="reference">
+      <strong>Quick test</strong>
+      <ol>
+        <li>Register or login → token saved automatically.</li>
+        <li>Connect <code>/ws/leaderboard</code> and <code>/ws/game</code>.</li>
+        <li>On game socket: <code>join</code> then <code>score</code> (must join first).</li>
+        <li>Leaderboard shows <code>snapshot</code> on connect and after each flush (~250ms).</li>
+      </ol>
+      <p>
+        <strong>Game ← server:</strong>
+        <code>player.joined</code>,
+        <code>player.left</code>,
+        <code>score.updated</code>
+        (includes <code>newScore</code>),
+        <code>error</code>
+        &nbsp;|&nbsp;
+        <strong>Leaderboard ← server:</strong>
+        <code>snapshot</code>
+        (<code>entries[]</code>: rank, playerId, name, score)
+        &nbsp;|&nbsp;
+        <strong>Game → server:</strong>
+        <code>join</code>,
+        <code>score</code>,
+        <code>leave</code>
+      </p>
+      <p>
+        Scores persist to <code>player_scores</code> + <code>score_events</code> (Postgres)
+        and <code>leaderboard:global</code> (Redis) on flush.
+      </p>
+    </div>
 
     <script>
-      const STORAGE_KEY = "ws-console-jwt";
+      const STORAGE_HTTP = "ws-console-http";
+      const STORAGE_JWT = "ws-console-jwt";
+
       const $ = (id) => document.getElementById(id);
 
       let gameWs = null;
       let lbWs = null;
       let gameEventCount = 0;
       let lbEventCount = 0;
+      let currentUserId = null;
 
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) $("jwt").value = saved;
+      const savedHttp = localStorage.getItem(STORAGE_HTTP);
+      const savedJwt = localStorage.getItem(STORAGE_JWT);
+      if (savedHttp) $("httpBase").value = savedHttp;
+      if (savedJwt) {
+        $("jwt").value = savedJwt;
+        refreshUserChip(savedJwt);
+      }
+
+      $("httpBase").addEventListener("change", () => {
+        localStorage.setItem(STORAGE_HTTP, $("httpBase").value.trim());
+      });
 
       $("saveToken").addEventListener("click", () => {
-        localStorage.setItem(STORAGE_KEY, $("jwt").value.trim());
-        log("gameEvents", "system", "Token saved to localStorage");
+        const token = $("jwt").value.trim();
+        localStorage.setItem(STORAGE_JWT, token);
+        refreshUserChip(token);
+        log("gameEvents", "system", "Token saved");
       });
 
       document.querySelectorAll("[data-clear]").forEach((btn) => {
@@ -326,30 +421,109 @@
           } else {
             lbEventCount = 0;
             $("lbCount").textContent = "0 events";
+            $("lbTableWrap").innerHTML = "";
           }
         });
       });
 
+      function httpBase() {
+        return $("httpBase").value.trim().replace(/\/$/, "");
+      }
+
+      function wsBase() {
+        const http = httpBase();
+        if (http.startsWith("https://")) return http.replace("https://", "wss://");
+        if (http.startsWith("http://")) return http.replace("http://", "ws://");
+        return `ws://${http}`;
+      }
+
       function getToken() {
         const t = $("jwt").value.trim();
-        if (!t) throw new Error("Enter a JWT token first");
+        if (!t) throw new Error("Login or paste a JWT first");
         return t;
       }
 
+      function decodeJwtPayload(token) {
+        try {
+          const part = token.split(".")[1];
+          const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+          return JSON.parse(json);
+        } catch {
+          return null;
+        }
+      }
+
+      function refreshUserChip(token) {
+        const payload = decodeJwtPayload(token);
+        if (!payload) {
+          currentUserId = null;
+          $("userChip").textContent = "Token set (could not decode payload).";
+          return;
+        }
+        currentUserId = payload.sub ?? null;
+        $("userChip").innerHTML =
+          `Logged in as <strong>${escapeHtml(String(payload.email ?? "?"))}</strong>` +
+          ` · playerId <strong>${escapeHtml(String(currentUserId ?? "?"))}</strong>`;
+      }
+
+      function setToken(accessToken) {
+        $("jwt").value = accessToken;
+        localStorage.setItem(STORAGE_JWT, accessToken);
+        localStorage.setItem(STORAGE_HTTP, httpBase());
+        refreshUserChip(accessToken);
+      }
+
+      async function apiPost(path, body) {
+        const res = await fetch(`${httpBase()}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.message || data.error || res.statusText);
+        }
+        return data;
+      }
+
+      $("btnRegister").addEventListener("click", async () => {
+        try {
+          const data = await apiPost("/auth/register", {
+            name: $("regName").value.trim() || "Player",
+            email: $("regEmail").value.trim(),
+            password: $("regPassword").value,
+          });
+          setToken(data.accessToken);
+          log("gameEvents", "system", "Registered", { email: $("regEmail").value.trim() });
+        } catch (e) {
+          log("gameEvents", "error", "Register failed", { message: e.message });
+        }
+      });
+
+      $("btnLogin").addEventListener("click", async () => {
+        try {
+          const data = await apiPost("/auth/login", {
+            email: $("regEmail").value.trim(),
+            password: $("regPassword").value,
+          });
+          setToken(data.accessToken);
+          log("gameEvents", "system", "Logged in", { email: $("regEmail").value.trim() });
+        } catch (e) {
+          log("gameEvents", "error", "Login failed", { message: e.message });
+        }
+      });
+
       function wsUrl(path) {
-        const base = $("baseUrl").value.trim().replace(/\/$/, "");
         const token = encodeURIComponent(getToken());
-        return `${base}${path}?token=${token}`;
+        return `${wsBase()}${path}?token=${token}`;
       }
 
       function log(containerId, kind, label, payload) {
         const el = document.createElement("div");
         el.className = `event ${kind}`;
-        const channel =
-          containerId === "gameEvents" ? "game" : "leaderboard";
         const time = new Date().toLocaleTimeString();
         const body =
-          payload === undefined
+          payload === undefined || payload === null
             ? ""
             : typeof payload === "string"
               ? payload
@@ -367,10 +541,38 @@
       }
 
       function escapeHtml(s) {
-        return s
+        return String(s)
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
+      }
+
+      function renderLeaderboardTable(snapshot) {
+        const entries = snapshot?.entries ?? [];
+        if (!entries.length) {
+          $("lbTableWrap").innerHTML =
+            '<p style="margin:0;font-size:0.8rem;color:var(--muted)">Empty leaderboard</p>';
+          return;
+        }
+
+        const rows = entries
+          .map((e) => {
+            const you =
+              currentUserId != null && String(e.playerId) === String(currentUserId)
+                ? ' class="you"'
+                : "";
+            return `<tr${you}><td>${e.rank}</td><td>${escapeHtml(e.name ?? "?")}</td><td>${escapeHtml(e.playerId)}</td><td>${e.score}</td></tr>`;
+          })
+          .join("");
+
+        $("lbTableWrap").innerHTML = `
+          <p style="margin:0 0 0.35rem;font-size:0.75rem;color:var(--muted)">
+            Updated ${escapeHtml(snapshot.updatedAt ?? "")}
+          </p>
+          <table class="lb">
+            <thead><tr><th>#</th><th>Name</th><th>Player</th><th>Score</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
       }
 
       function setGameConnected(connected) {
@@ -401,7 +603,7 @@
 
         gameWs.onopen = () => {
           setGameConnected(true);
-          log("gameEvents", "system", "connected", null);
+          log("gameEvents", "system", "connected");
         };
 
         gameWs.onmessage = (ev) => {
@@ -412,15 +614,11 @@
             data = ev.data;
           }
           const type =
-            data && typeof data === "object" && data.type
-              ? data.type
-              : "message";
+            data && typeof data === "object" && data.type ? data.type : "message";
           log("gameEvents", "in game", `← ${type}`, data);
         };
 
-        gameWs.onerror = () => {
-          log("gameEvents", "error", "socket error", null);
-        };
+        gameWs.onerror = () => log("gameEvents", "error", "socket error");
 
         gameWs.onclose = (ev) => {
           setGameConnected(false);
@@ -443,7 +641,7 @@
 
         lbWs.onopen = () => {
           setLbConnected(true);
-          log("lbEvents", "system", "connected", null);
+          log("lbEvents", "system", "connected");
         };
 
         lbWs.onmessage = (ev) => {
@@ -454,15 +652,12 @@
             data = ev.data;
           }
           const type =
-            data && typeof data === "object" && data.type
-              ? data.type
-              : "message";
+            data && typeof data === "object" && data.type ? data.type : "message";
+          if (type === "snapshot") renderLeaderboardTable(data);
           log("lbEvents", "in leaderboard", `← ${type}`, data);
         };
 
-        lbWs.onerror = () => {
-          log("lbEvents", "error", "socket error", null);
-        };
+        lbWs.onerror = () => log("lbEvents", "error", "socket error");
 
         lbWs.onclose = (ev) => {
           setLbConnected(false);
@@ -476,11 +671,10 @@
 
       function sendGame(msg) {
         if (!gameWs || gameWs.readyState !== WebSocket.OPEN) {
-          log("gameEvents", "error", "not connected", null);
+          log("gameEvents", "error", "not connected");
           return;
         }
-        const raw = JSON.stringify(msg);
-        gameWs.send(raw);
+        gameWs.send(JSON.stringify(msg));
         log("gameEvents", "out", `→ ${msg.type}`, msg);
       }
 
@@ -488,12 +682,18 @@
       $("gameDisconnect").addEventListener("click", () => gameWs?.close());
       $("lbConnect").addEventListener("click", connectLeaderboard);
       $("lbDisconnect").addEventListener("click", () => lbWs?.close());
+      $("connectBoth").addEventListener("click", () => {
+        try {
+          getToken();
+          connectLeaderboard();
+          connectGame();
+        } catch (e) {
+          log("gameEvents", "error", e.message);
+        }
+      });
 
       $("sendJoin").addEventListener("click", () =>
-        sendGame({
-          type: "join",
-          matchId: $("matchId").value.trim() || "match-1",
-        }),
+        sendGame({ type: "join", matchId: $("matchId").value.trim() || "match-1" }),
       );
 
       $("sendScore").addEventListener("click", () =>
@@ -505,10 +705,7 @@
       );
 
       $("sendLeave").addEventListener("click", () =>
-        sendGame({
-          type: "leave",
-          matchId: $("matchId").value.trim() || "match-1",
-        }),
+        sendGame({ type: "leave", matchId: $("matchId").value.trim() || "match-1" }),
       );
     </script>
   </body>
