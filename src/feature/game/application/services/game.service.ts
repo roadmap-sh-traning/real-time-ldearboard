@@ -1,7 +1,6 @@
 import { GameCommandPort } from "../ports/inbound/game-command.port";
 import { PlayerRepository } from "../ports/outbound/player.repository";
 import { MatchRepository } from "../ports/outbound/match.repository";
-import { ConnectionRegistry } from "../ports/outbound/connection-registry.port";
 import { EventPublisher } from "../ports/outbound/event-publisher.port";
 import {
   addPlayer,
@@ -19,7 +18,6 @@ export class GameService implements GameCommandPort {
   constructor(
     private readonly players: PlayerRepository,
     private readonly matches: MatchRepository,
-    private readonly connections: ConnectionRegistry,
     private readonly events: EventPublisher,
   ) {}
 
@@ -38,8 +36,6 @@ export class GameService implements GameCommandPort {
       createMatch(input.matchId);
     const updated = addPlayer(match, input.playerId);
     await this.matches.save(updated);
-
-    this.connections.bind(input.playerId, input.matchId);
 
     this.events.publish({
       type: "player.joined",
@@ -86,8 +82,6 @@ export class GameService implements GameCommandPort {
 
     const updated = removePlayer(match, input.playerId);
     await this.matches.save(updated);
-
-    this.connections.unbind(input.playerId);
 
     this.events.publish({
       type: "player.left",

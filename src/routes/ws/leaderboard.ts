@@ -3,12 +3,15 @@ import { AppInstance } from "../../global";
 import { LeaderboardService } from "../../feature/leaderboard/application/services/leaderboard.service";
 import { RedisScoreStore } from "../../feature/leaderboard/infrastructure/outbound/redis-score-store";
 import { WsLeaderboardBroadcaster } from "../../feature/leaderboard/infrastructure/outbound/ws-leaderboard-broadcaster";
+import { PostgresNameResolver } from "../../feature/leaderboard/infrastructure/outbound/postgres-name-resolver";
 
 export default async function leaderboardWsRoutes(fs: AppInstance) {
   const scoreStore = new RedisScoreStore(fs);
+  const nameResolver = new PostgresNameResolver(fs.db);
   const broadcaster = new WsLeaderboardBroadcaster();
   const leaderboardService = new LeaderboardService(
     scoreStore,
+    nameResolver,
     broadcaster,
     fs.gameEvents,
   );

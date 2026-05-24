@@ -1,6 +1,6 @@
 import fp from "fastify-plugin";
 import { EventPublisher } from "../feature/game/application/ports/outbound/event-publisher.port";
-import { InMemoryEventPublisher } from "../feature/game/infrastructure/outbound/in-memory-event-publisher";
+import { RedisEventPublisher } from "../feature/game/infrastructure/outbound/redis-event-publisher";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -9,6 +9,6 @@ declare module "fastify" {
 }
 
 export default fp(async (fastify) => {
-  const events = new InMemoryEventPublisher();
+  const events = new RedisEventPublisher(fastify.redis);
   fastify.decorate("gameEvents", events);
 });

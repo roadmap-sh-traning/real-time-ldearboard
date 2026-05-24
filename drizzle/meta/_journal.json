@@ -8,6 +8,13 @@
       "when": 1779040465755,
       "tag": "0000_jittery_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779649849365,
+      "tag": "0001_open_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

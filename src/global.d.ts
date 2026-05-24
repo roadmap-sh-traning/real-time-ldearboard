@@ -1,11 +1,15 @@
 import { JWT } from "@fastify/jwt";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
   RawServerDefault,
   FastifyRawRequest,
   FastifyRawReply,
   FastifyBaseLogger,
 } from "fastify";
+import * as schema from "./schema";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import "@fastify/jwt";
 import { JwtPayload } from "./schemas";

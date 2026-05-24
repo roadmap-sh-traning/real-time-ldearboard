@@ -1,4 +1,5 @@
 import { AppInstance } from "../../../../global";
+import { RankedScore } from "../../domain/ranked-score";
 import { ScoreStorePort } from "../../application/ports/outbound/score-store.port";
 
 const LEADERBOARD_KEY = "leaderboard:global";
@@ -14,11 +15,11 @@ export class RedisScoreStore implements ScoreStorePort {
     await this.client.redis.zadd(LEADERBOARD_KEY, score, playerId);
   }
 
-  async getLeaderboard() {
+  async getLeaderboard(): Promise<RankedScore[]> {
     const result = await this.client.redis.zrevrange(
       LEADERBOARD_KEY,
       0,
-      100,
+      99,
       "WITHSCORES",
     );
 

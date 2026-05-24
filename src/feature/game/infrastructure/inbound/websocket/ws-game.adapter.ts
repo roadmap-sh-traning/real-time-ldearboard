@@ -1,9 +1,10 @@
 import { WebSocket } from "ws";
+import { Redis } from "ioredis";
 import { Value } from "@sinclair/typebox/value";
 import { GameCommandPort } from "../../../application/ports/inbound/game-command.port";
-import { EventPublisher } from "../../../application/ports/outbound/event-publisher.port";
+import { PlayerSessionPort } from "../../../application/ports/outbound/player-session.port";
+import { matchEventsChannel } from "../../../infrastructure/outbound/redis-event-publisher";
 import { PlayerId } from "../../../domain/player";
-import { WsConnectionRegistry } from "./ws-connection-registry";
 import { incomingMessage, IncomingMessage } from "./ws-message.schema";
 
 export interface AuthenticatedSocketContext {
@@ -14,19 +15,41 @@ export interface AuthenticatedSocketContext {
 export class WsGameAdapter {
   constructor(
     private readonly commands: GameCommandPort,
-    private readonly registry: WsConnectionRegistry,
-    private readonly events: EventPublisher,
-  ) {
-    this.events.subscribe((event) => {
-      const payload = JSON.stringify(event);
-      for (const pid of this.registry.playersInMatch(event.matchId)) {
-        this.registry.socketFor(pid)?.send(payload);
-      }
-    });
-  }
+    private readonly sessions: PlayerSessionPort,
+    private readonly redis: Redis,
+  ) {}
 
   handleConnection(socket: WebSocket, ctx: AuthenticatedSocketContext): void {
-    this.registry.attach(ctx.playerId, socket);
+    void this.sessions.markConnected(ctx.playerId);
+
+    let matchSubscriber: Redis | null = null;
+    let subscribedMatchId: string | null = null;
+
+    const subscribeToMatch = async (matchId: string) => {
+      if (subscribedMatchId === matchId) return;
+
+      if (matchSubscriber) {
+        await matchSubscriber.unsubscribe();
+        matchSubscriber.disconnect();
+      }
+
+      matchSubscriber = this.redis.duplicate();
+      const channel = matchEventsChannel(matchId);
+      await matchSubscriber.subscribe(channel);
+      matchSubscriber.on("message", (_channel, payload) => {
+        if (socket.readyState !== WebSocket.OPEN) return;
+        socket.send(payload);
+      });
+      subscribedMatchId = matchId;
+    };
+
+    const unsubscribeFromMatch = async () => {
+      if (!matchSubscriber) return;
+      await matchSubscriber.unsubscribe();
+      matchSubscriber.disconnect();
+      matchSubscriber = null;
+      subscribedMatchId = null;
+    };
 
     socket.on("message", async (raw) => {
       let parsed: unknown;
@@ -41,7 +64,7 @@ export class WsGameAdapter {
       }
 
       try {
-        await this.dispatch(ctx, parsed);
+        await this.dispatch(ctx, parsed, subscribeToMatch, unsubscribeFromMatch);
       } catch (err) {
         this.sendError(
           socket,
@@ -51,21 +74,25 @@ export class WsGameAdapter {
     });
 
     socket.on("close", () => {
-      this.registry.detach(ctx.playerId);
+      void this.sessions.markDisconnected(ctx.playerId);
+      void unsubscribeFromMatch();
     });
   }
 
   private async dispatch(
     ctx: AuthenticatedSocketContext,
     msg: IncomingMessage,
+    subscribeToMatch: (matchId: string) => Promise<void>,
+    unsubscribeFromMatch: () => Promise<void>,
   ): Promise<void> {
     switch (msg.type) {
       case "join":
-        return this.commands.joinMatch({
+        await this.commands.joinMatch({
           playerId: ctx.playerId,
           playerName: ctx.playerName,
           matchId: msg.matchId,
         });
+        return subscribeToMatch(msg.matchId);
       case "score":
         return this.commands.submitScore({
           playerId: ctx.playerId,
@@ -73,10 +100,11 @@ export class WsGameAdapter {
           delta: msg.delta,
         });
       case "leave":
-        return this.commands.leaveMatch({
+        await this.commands.leaveMatch({
           playerId: ctx.playerId,
           matchId: msg.matchId,
         });
+        return unsubscribeFromMatch();
     }
   }
 
