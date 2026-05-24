@@ -1,5 +1,6 @@
 import { AppInstance } from "../../../../global";
 import { RankedScore } from "../../domain/ranked-score";
+import { ScoreUpdate } from "../../domain/score-update";
 import { ScoreStorePort } from "../../application/ports/outbound/score-store.port";
 
 const LEADERBOARD_KEY = "leaderboard:global";
@@ -11,8 +12,14 @@ export class RedisScoreStore implements ScoreStorePort {
     this.client = client;
   }
 
-  async saveScore(playerId: string, score: number): Promise<void> {
-    await this.client.redis.zadd(LEADERBOARD_KEY, score, playerId);
+  async updateMany(updates: ScoreUpdate[]): Promise<void> {
+    if (updates.length === 0) return;
+
+    const pipeline = this.client.redis.pipeline();
+    for (const { playerId, score } of updates) {
+      pipeline.zadd(LEADERBOARD_KEY, score, playerId);
+    }
+    await pipeline.exec();
   }
 
   async getLeaderboard(): Promise<RankedScore[]> {

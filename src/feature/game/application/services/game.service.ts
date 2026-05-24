@@ -1,6 +1,7 @@
 import { GameCommandPort } from "../ports/inbound/game-command.port";
 import { PlayerRepository } from "../ports/outbound/player.repository";
 import { MatchRepository } from "../ports/outbound/match.repository";
+import { ScoreEventRepository } from "../ports/outbound/score-event.repository";
 import { EventPublisher } from "../ports/outbound/event-publisher.port";
 import {
   addPlayer,
@@ -18,6 +19,7 @@ export class GameService implements GameCommandPort {
   constructor(
     private readonly players: PlayerRepository,
     private readonly matches: MatchRepository,
+    private readonly scoreEvents: ScoreEventRepository,
     private readonly events: EventPublisher,
   ) {}
 
@@ -63,6 +65,12 @@ export class GameService implements GameCommandPort {
 
     const updated = applyScoreDelta(player, input.delta);
     await this.players.save(updated);
+    await this.scoreEvents.append({
+      userId: input.playerId,
+      matchId: input.matchId,
+      delta: input.delta,
+      scoreAfter: updated.score,
+    });
 
     this.events.publish({
       type: "score.updated",

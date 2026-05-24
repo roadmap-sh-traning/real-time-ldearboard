@@ -69,13 +69,11 @@ export class LeaderboardService {
   private async applyPendingScores(): Promise<void> {
     if (this.pendingScores.size === 0) return;
 
-    const updates = [...this.pendingScores.entries()];
+    const updates = [...this.pendingScores.entries()].map(
+      ([playerId, score]) => ({ playerId, score }),
+    );
     this.pendingScores.clear();
 
-    await Promise.all(
-      updates.map(([playerId, score]) =>
-        this.scoreStore.saveScore(playerId, score),
-      ),
-    );
+    await this.scoreStore.updateMany(updates);
   }
 }
