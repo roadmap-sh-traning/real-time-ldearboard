@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../../../../schema";
 import { Match, MatchId, MatchStatus } from "../../domain/match";
@@ -69,25 +69,28 @@ export class DrizzleMatchRepository implements MatchRepository {
 
       const activeIds = new Set(activePlayers.map((row) => row.userId));
 
-      for (const userId of match.playerIds) {
-        if (activeIds.has(userId)) continue;
+      tx.insert(schema.matchTables)
 
-        await tx.insert(schema.matchTables).values({
-          matchId: match.id,
-          userId,
-          joinedAt: new Date(),
-          leftAt: null,
-        });
-      }
+      const values = [...match.playerIds]
+      .filter((userId) => !activeIds.has(userId))
+      .map((userId) => ({
+        matchId: match.id,
+        userId,
+        joinedAt: new Date(),
+        leftAt: null,
+      }));
 
-      for (const row of activePlayers) {
-        if (match.playerIds.has(row.userId)) continue;
+      await tx.insert(schema.matchTables).values(values);
 
-        await tx
-          .update(schema.matchTables)
-          .set({ leftAt: new Date() })
-          .where(eq(schema.matchTables.id, row.id));
-      }
+
+      const updateMatchTableIds = activePlayers
+      .filter((player) => !match.playerIds.has(player.userId))
+      .map((p) => p.id)
+     
+      await tx
+      .update(schema.matchTables)
+      .set({ leftAt: new Date() })
+      .where(inArray(schema.matchTables.id, updateMatchTableIds));
     });
   }
 }
