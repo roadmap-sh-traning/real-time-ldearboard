@@ -49,6 +49,7 @@ export const scoreEvents = pgTable('score_events', {
     .references(() => users.id)
     .notNull(),
   matchId: text('match_id').notNull(),
+  gameType: text('game_type').notNull(),
   delta: integer('delta').notNull(),
   scoreAfter: integer('score_after').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
@@ -56,6 +57,7 @@ export const scoreEvents = pgTable('score_events', {
 
 export const matches = pgTable('matches', {
   id: text('id').primaryKey(),
+  gameType: text('game_type').notNull(),
   status: text('status').notNull().default('pending'),
   startedAt: timestamp('started_at'),
   endedAt: timestamp('ended_at'),

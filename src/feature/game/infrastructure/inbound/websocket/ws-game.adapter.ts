@@ -91,18 +91,21 @@ export class WsGameAdapter {
           playerId: ctx.playerId,
           playerName: ctx.playerName,
           matchId: msg.matchId,
+          gameType: msg.gameType,
         });
         return subscribeToMatch(msg.matchId);
       case "score":
         return this.commands.submitScore({
           playerId: ctx.playerId,
           matchId: msg.matchId,
+          gameType: msg.gameType,
           delta: msg.delta,
         });
       case "leave":
         await this.commands.leaveMatch({
           playerId: ctx.playerId,
           matchId: msg.matchId,
+          gameType: msg.gameType,
         });
         return unsubscribeFromMatch();
     }

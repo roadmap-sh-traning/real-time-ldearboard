@@ -1,4 +1,5 @@
 import { PlayerId } from "./player";
+import { GameType } from "./game-type";
 
 export type MatchId = string;
 
@@ -6,14 +7,15 @@ export type MatchStatus = "waiting" | "active" | "ended";
 
 export interface Match {
   id: MatchId;
+  gameType: GameType;
   status: MatchStatus;
   playerIds: Set<PlayerId>;
   startedAt?: Date;
   endedAt?: Date;
 }
 
-export function createMatch(id: MatchId): Match {
-  return { id, status: "waiting", playerIds: new Set() };
+export function createMatch(id: MatchId, gameType: GameType): Match {
+  return { id, gameType, status: "waiting", playerIds: new Set() };
 }
 
 export function addPlayer(match: Match, playerId: PlayerId): Match {

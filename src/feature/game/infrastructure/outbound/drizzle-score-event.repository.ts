@@ -10,6 +10,7 @@ export class DrizzleScoreEventRepository implements ScoreEventRepository {
     await this.db.insert(schema.scoreEvents).values({
       userId: event.userId,
       matchId: event.matchId,
+      gameType: event.gameType,
       delta: event.delta,
       scoreAfter: event.scoreAfter,
     });

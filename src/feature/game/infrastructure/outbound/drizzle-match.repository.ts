@@ -28,6 +28,7 @@ export class DrizzleMatchRepository implements MatchRepository {
 
     return {
       id: matchRow.id,
+      gameType: matchRow.gameType as Match["gameType"],
       status: toDomainStatus(matchRow.status),
       playerIds: new Set(playerRows.map((row) => row.userId)),
       startedAt: matchRow.startedAt ?? undefined,
@@ -41,6 +42,7 @@ export class DrizzleMatchRepository implements MatchRepository {
         .insert(schema.matches)
         .values({
           id: match.id,
+          gameType: match.gameType,
           status: match.status,
           startedAt: match.startedAt ?? null,
           endedAt: match.endedAt ?? null,
@@ -48,6 +50,7 @@ export class DrizzleMatchRepository implements MatchRepository {
         .onConflictDoUpdate({
           target: schema.matches.id,
           set: {
+            gameType: match.gameType,
             status: match.status,
             startedAt: match.startedAt ?? null,
             endedAt: match.endedAt ?? null,
