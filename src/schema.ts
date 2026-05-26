@@ -88,6 +88,77 @@ export const matchTables = pgTable('match_tables', {
   (t) => [index("idx_match_tables_match_id_user_id").on(t.matchId, t.userId)],
 );
 
+export const walletAccounts = pgTable("wallet_accounts", {
+  userId: integer("user_id")
+    .references(() => users.id)
+    .primaryKey(),
+  balance: integer("balance").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const gameWalletAccounts = pgTable(
+  "game_wallet_accounts",
+  {
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    gameType: text("game_type").notNull(),
+    balance: integer("balance").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.gameType] }),
+    index("idx_game_wallet_accounts_game_type_user_id").on(t.gameType, t.userId),
+  ],
+);
+
+export const walletTransactions = pgTable(
+  "wallet_transactions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    gameType: text("game_type"),
+    sagaId: text("saga_id"),
+    type: text("type").notNull(),
+    amount: integer("amount").notNull(),
+    reference: text("reference").notNull(),
+    mainBalanceAfter: integer("main_balance_after").notNull(),
+    gameBalanceAfter: integer("game_balance_after"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_wallet_transactions_user_id_created_at").on(
+      t.userId,
+      t.createdAt.desc(),
+    ),
+    index("idx_wallet_transactions_saga_id").on(t.sagaId),
+  ],
+);
+
+export const walletSagas = pgTable(
+  "wallet_sagas",
+  {
+    id: text("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    gameType: text("game_type").notNull(),
+    amount: integer("amount").notNull(),
+    reference: text("reference").notNull(),
+    status: text("status").notNull(),
+    failureReason: text("failure_reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    completedAt: timestamp("completed_at"),
+    compensatedAt: timestamp("compensated_at"),
+  },
+  (t) => [index("idx_wallet_sagas_user_id_status").on(t.userId, t.status)],
+);
+
 export const leaderboardPeriodScores = pgTable('leaderboard_period_scores', {
   periodType: text('period_type').notNull(),
   periodKey: text('period_key').notNull(),
