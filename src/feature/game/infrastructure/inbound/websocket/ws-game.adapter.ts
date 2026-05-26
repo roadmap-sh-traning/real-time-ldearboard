@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { Redis } from "ioredis";
 import { Value } from "@sinclair/typebox/value";
+import { WS_ERROR, WsErrorPayload, toWsError } from "../../../../../custom-errors/ws";
 import { GameCommandPort } from "../../../application/ports/inbound/game-command.port";
 import { PlayerSessionPort } from "../../../application/ports/outbound/player-session.port";
 import { matchEventsChannel } from "../../../infrastructure/outbound/redis-event-publisher";
@@ -56,11 +57,11 @@ export class WsGameAdapter {
       try {
         parsed = JSON.parse(raw.toString());
       } catch {
-        return this.sendError(socket, "invalid_json");
+        return this.sendError(socket, WS_ERROR.INVALID_JSON);
       }
 
       if (!Value.Check(incomingMessage, parsed)) {
-        return this.sendError(socket, "invalid_message");
+        return this.sendError(socket, WS_ERROR.INVALID_MESSAGE);
       }
 
       try {
@@ -68,7 +69,7 @@ export class WsGameAdapter {
       } catch (err) {
         this.sendError(
           socket,
-          err instanceof Error ? err.message : "unknown_error",
+          err instanceof Error ? toWsError(err.message) : WS_ERROR.UNKNOWN_ERROR,
         );
       }
     });
@@ -111,7 +112,7 @@ export class WsGameAdapter {
     }
   }
 
-  private sendError(socket: WebSocket, code: string): void {
-    socket.send(JSON.stringify({ type: "error", code }));
+  private sendError(socket: WebSocket, error: WsErrorPayload): void {
+    socket.send(JSON.stringify(error));
   }
 }
