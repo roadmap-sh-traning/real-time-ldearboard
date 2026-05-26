@@ -200,7 +200,7 @@ async function loadWalletModules(): Promise<{
     "../../../src/feature/wallet/application/services/wallet-game-start.saga";
   let walletServiceModule: { WalletService: new (ledger: InMemoryWalletLedgerRepository) => unknown };
   try {
-    walletServiceModule = await import(walletServicePath);
+    walletServiceModule = require(walletServicePath);
   } catch {
     assert.fail("WalletService module is missing");
   }
@@ -212,7 +212,7 @@ async function loadWalletModules(): Promise<{
     ) => unknown;
   };
   try {
-    walletSagaModule = await import(walletSagaPath);
+    walletSagaModule = require(walletSagaPath);
   } catch {
     assert.fail("WalletGameStartSaga module is missing");
   }
