@@ -5,6 +5,7 @@ const gameTypeValues = gameTypes.map((gameType) => Type.Literal(gameType));
 export const gameTypeSchema = Type.Union([
   gameTypeValues[0],
   gameTypeValues[1],
+  gameTypeValues[2],
 ]);
 
 export const joinMatchMessage = Type.Object({

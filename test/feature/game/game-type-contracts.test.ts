@@ -77,14 +77,14 @@ test("joinMatch carries gameType into matches and events", async () => {
     playerId: 7,
     playerName: "alice@example.com",
     matchId: "match-1",
-    gameType: "spin-wheel",
+    gameType: "score",
   });
 
   const match = await matches.findById("match-1");
-  assert.equal(match?.gameType, "spin-wheel");
+  assert.equal(match?.gameType, "score");
   assert.deepEqual(match ? [...match.playerIds] : [], [7]);
   assert.equal(eventPublisher.events[0]?.type, "player.joined");
-  assert.equal(eventPublisher.events[0]?.gameType, "spin-wheel");
+  assert.equal(eventPublisher.events[0]?.gameType, "score");
 });
 
 test("submitScore stores and publishes typed score updates", async () => {
@@ -94,7 +94,7 @@ test("submitScore stores and publishes typed score updates", async () => {
   const matches = new InMemoryMatchRepository();
   matches.set({
     id: "match-1",
-    gameType: "penalty-kicks",
+    gameType: "score",
     status: "waiting",
     playerIds: new Set([7]),
   });
@@ -111,19 +111,19 @@ test("submitScore stores and publishes typed score updates", async () => {
   await service.submitScore({
     playerId: 7,
     matchId: "match-1",
-    gameType: "penalty-kicks",
+    gameType: "score",
     delta: 3,
   });
 
   assert.deepEqual(scoreEvents.events[0], {
     userId: 7,
     matchId: "match-1",
-    gameType: "penalty-kicks",
+    gameType: "score",
     delta: 3,
     scoreAfter: 3,
   });
   assert.equal(eventPublisher.events[0]?.type, "score.updated");
-  assert.equal(eventPublisher.events[0]?.gameType, "penalty-kicks");
+  assert.equal(eventPublisher.events[0]?.gameType, "score");
 });
 
 test("incoming websocket messages require a supported gameType", () => {
