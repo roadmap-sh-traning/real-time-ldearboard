@@ -1,7 +1,7 @@
 import multipart from "@fastify/multipart";
-import { AppInstance } from "../../../global";
-import { PenaltyKickPrizeSequenceService } from "../../../feature/game/application/services/penalty-kick-prize-sequence.service";
-import { DrizzlePrizeSequenceRepository } from "../../../feature/game/infrastructure/outbound/drizzle-prize-sequence.repository";
+import { AppInstance } from "../../../../global";
+import { PenaltyKickPrizeSequenceService } from "../../../../feature/game/application/services/penalty-kick-prize-sequence.service";
+import { DrizzlePrizeSequenceRepository } from "../../../../feature/game/infrastructure/outbound/drizzle-prize-sequence.repository";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
