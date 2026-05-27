@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Penalty Kicks</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app hidden">
+      <aside class="sidebar">
+        <header class="brand">
+          <h1>Penalty Kicks</h1>
+          <p class="tagline">PixiJS · Live leaderboard</p>
+        </header>
+
+        <section class="panel" id="auth-panel">
+          <h2>Account</h2>
+          <label class="field">
+            <span>Email</span>
+            <input id="email" type="email" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password" type="password" autocomplete="current-password" />
+          </label>
+          <div class="row">
+            <button type="button" id="btn-login" class="btn primary">Login</button>
+            <button type="button" id="btn-register" class="btn">Register</button>
+          </div>
+          <p id="auth-status" class="status"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Prize sequence</h2>
+          <label class="field">
+            <span>Excel (.xlsx)</span>
+            <input id="prize-file" type="file" accept=".xlsx,.xls" />
+          </label>
+          <button type="button" id="btn-upload" class="btn secondary" disabled>
+            Upload sequence
+          </button>
+          <label class="field">
+            <span>Sequence ID</span>
+            <input id="sequence-id" type="text" placeholder="From upload response" />
+          </label>
+          <button type="button" id="btn-play" class="btn primary" disabled>
+            Start match
+          </button>
+        </section>
+
+        <section class="panel leaderboard-panel">
+          <h2>Leaderboard</h2>
+          <p id="lb-updated" class="muted">Login to view live rankings</p>
+          <ol id="leaderboard-list" class="leaderboard-list"></ol>
+        </section>
+      </aside>
+
+      <main class="stage">
+        <div class="hud">
+          <div class="hud-item">
+            <span class="label">Match</span>
+            <span id="hud-match">—</span>
+          </div>
+          <div class="hud-item">
+            <span class="label">Main wallet</span>
+            <span id="hud-main">—</span>
+          </div>
+          <div class="hud-item">
+            <span class="label">Game wallet</span>
+            <span id="hud-game">—</span>
+          </div>
+          <div class="hud-item">
+            <span class="label">Kicks left</span>
+            <span id="hud-kicks">—</span>
+          </div>
+          <div class="hud-item status-pill" id="hud-status">Offline</div>
+        </div>
+        <div id="pixi-host" class="pixi-host"></div>
+        <p class="hint">Click a goal zone (0–3) to take your kick.</p>
+      </main>
+    </div>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <h2 id="modal-title">Goal!</h2>
+        <p id="modal-body"></p>
+        <button type="button" id="modal-close" class="btn primary">Continue</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

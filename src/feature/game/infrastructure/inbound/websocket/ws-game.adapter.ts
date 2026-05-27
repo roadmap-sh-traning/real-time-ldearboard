@@ -27,6 +27,15 @@ export class WsGameAdapter {
   handleConnection(socket: WebSocket, ctx: AuthenticatedSocketContext): void {
     void this.sessions.markConnected(ctx.playerId);
 
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "connected",
+          playerId: ctx.playerId,
+        }),
+      );
+    }
+
     let matchSubscriber: Redis | null = null;
     let subscribedMatchId: string | null = null;
 
@@ -99,6 +108,7 @@ export class WsGameAdapter {
   ): Promise<void> {
     switch (msg.type) {
       case "join":
+        await subscribeToMatch(msg.matchId);
         await this.commands.joinMatch({
           playerId: ctx.playerId,
           playerName: ctx.playerName,
@@ -106,7 +116,7 @@ export class WsGameAdapter {
           gameType: msg.gameType,
           sequenceId: msg.sequenceId,
         });
-        return subscribeToMatch(msg.matchId);
+        return;
       case "score":
         return this.commands.submitScore({
           playerId: ctx.playerId,

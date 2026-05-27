@@ -1,0 +1,17 @@
+{
+  "name": "penalty-game-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pixi.js": "^8.8.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vite": "^6.3.5"
+  }
+}
