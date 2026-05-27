@@ -2,13 +2,14 @@ import { MatchRepository } from "../../ports/outbound/match.repository";
 import { PlayerRepository } from "../../ports/outbound/player.repository";
 import { ScoreEventRepository } from "../../ports/outbound/score-event.repository";
 import { EventPublisher } from "../../ports/outbound/event-publisher.port";
+import { WalletService } from "../../../../wallet/application/services/wallet.service";
 import {
   GameHandler,
   JoinMatchCommand,
   LeaveMatchCommand,
+  SubmitPenaltyKickCommand,
   SubmitScoreCommand,
 } from "../game-handler-registry";
-import { GameType } from "../../../domain/game-type";
 import {
   addPlayer,
   createMatch,
@@ -16,15 +17,18 @@ import {
   MatchId,
   removePlayer,
 } from "../../../domain/match";
+import { GameType } from "../../../domain/game-type";
 import { applyScoreDelta, createPlayer } from "../../../domain/player";
 
-export class ScoreTrackingGameHandler implements GameHandler {
+export class PenaltyKicksGameHandler implements GameHandler {
+  readonly gameType = "penalty-kicks" as const;
+
   constructor(
-    public readonly gameType: GameType,
     private readonly players: PlayerRepository,
     private readonly matches: MatchRepository,
     private readonly scoreEvents: ScoreEventRepository,
     private readonly events: EventPublisher,
+    private readonly wallets: WalletService,
   ) {}
 
   async joinMatch(input: JoinMatchCommand): Promise<void> {
@@ -49,12 +53,13 @@ export class ScoreTrackingGameHandler implements GameHandler {
     });
   }
 
-  async submitPenaltyKick(): Promise<void> {
-    throw new Error("Penalty kicks are not supported for this game type");
+  async submitScore(_input: SubmitScoreCommand): Promise<void> {
+    throw new Error("Use penalty-kick message for penalty-kicks game type");
   }
 
-  async submitScore(input: SubmitScoreCommand): Promise<void> {
+  async submitPenaltyKick(input: SubmitPenaltyKickCommand): Promise<void> {
     this.assertGameType(input.gameType);
+    this.assertDirectionIndex(input.directionIndex);
 
     const match = await this.matches.findById(input.matchId);
     if (!match || !match.playerIds.has(input.playerId)) {
@@ -67,24 +72,69 @@ export class ScoreTrackingGameHandler implements GameHandler {
       throw new Error("Player not found");
     }
 
-    const updated = applyScoreDelta(player, input.delta);
-    await this.players.save(updated);
+    const reference = `penalty-kick:${input.matchId}:${input.directionIndex}`;
+    let amount = 0;
+    let balances;
+
+    if (input.won) {
+      amount = input.scoreWon;
+      this.assertPositiveIntegerAmount(amount, "scoreWon");
+      await this.wallets.creditSharedWallet({
+        userId: input.playerId,
+        amount,
+        reference,
+      });
+      balances = await this.wallets.getBalances({
+        userId: input.playerId,
+        gameType: this.gameType,
+      });
+    } else {
+      amount = input.stakeAmount;
+      this.assertPositiveIntegerAmount(amount, "stakeAmount");
+      balances = await this.wallets.debitGameWallet({
+        userId: input.playerId,
+        gameType: this.gameType,
+        amount,
+        reference,
+      });
+    }
+
+    const updatedPlayer = input.won ? applyScoreDelta(player, amount) : player;
+    if (input.won) {
+      await this.players.save(updatedPlayer);
+    }
+
     await this.scoreEvents.append({
       userId: input.playerId,
       matchId: input.matchId,
-      gameType: match.gameType,
-      delta: input.delta,
-      scoreAfter: updated.score,
+      gameType: this.gameType,
+      delta: input.won ? amount : -amount,
+      scoreAfter: updatedPlayer.score,
     });
 
     this.events.publish({
-      type: "score.updated",
+      type: "penalty-kick.result",
       matchId: input.matchId,
-      gameType: match.gameType,
+      gameType: this.gameType,
       playerId: input.playerId,
-      newScore: updated.score,
+      directionIndex: input.directionIndex,
+      won: input.won,
+      amount,
+      mainBalance: balances.mainBalance,
+      gameBalance: balances.gameBalance,
       at: new Date(),
     });
+
+    if (input.won) {
+      this.events.publish({
+        type: "score.updated",
+        matchId: input.matchId,
+        gameType: this.gameType,
+        playerId: input.playerId,
+        newScore: updatedPlayer.score,
+        at: new Date(),
+      });
+    }
   }
 
   async leaveMatch(input: LeaveMatchCommand): Promise<void> {
@@ -125,6 +175,24 @@ export class ScoreTrackingGameHandler implements GameHandler {
   private assertPersistedGameType(actual: GameType): void {
     if (this.gameType !== actual) {
       throw new Error("Game type mismatch");
+    }
+  }
+
+  private assertDirectionIndex(directionIndex: number): void {
+    if (
+      !Number.isInteger(directionIndex) ||
+      directionIndex < 0 ||
+      directionIndex > 3
+    ) {
+      throw new Error(
+        "directionIndex must be a non-negative integer between 0 and 3",
+      );
+    }
+  }
+
+  private assertPositiveIntegerAmount(amount: number, field: string): void {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new Error(`${field} must be a positive integer`);
     }
   }
 }

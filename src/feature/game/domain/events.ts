@@ -5,7 +5,8 @@ import { GameType } from "./game-type";
 export type GameEvent =
   | PlayerJoinedMatchEvent
   | PlayerLeftMatchEvent
-  | ScoreUpdatedEvent;
+  | ScoreUpdatedEvent
+  | PenaltyKickResultEvent;
 
 export interface PlayerJoinedMatchEvent {
   type: "player.joined";
@@ -30,5 +31,18 @@ export interface ScoreUpdatedEvent {
   gameType: GameType;
   playerId: PlayerId;
   newScore: number;
+  at: Date;
+}
+
+export interface PenaltyKickResultEvent {
+  type: "penalty-kick.result";
+  matchId: MatchId;
+  gameType: "penalty-kicks";
+  playerId: PlayerId;
+  directionIndex: number;
+  won: boolean;
+  amount: number;
+  mainBalance: number;
+  gameBalance: number;
   at: Date;
 }

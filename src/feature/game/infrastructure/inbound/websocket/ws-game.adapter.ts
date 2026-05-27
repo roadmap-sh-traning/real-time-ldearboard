@@ -1,7 +1,11 @@
 import { WebSocket } from "ws";
 import { Redis } from "ioredis";
 import { Value } from "@sinclair/typebox/value";
-import { WS_ERROR, WsErrorPayload, toWsError } from "../../../../../custom-errors/ws";
+import {
+  WS_ERROR,
+  WsErrorPayload,
+  toWsError,
+} from "../../../../../custom-errors/ws";
 import { GameCommandPort } from "../../../application/ports/inbound/game-command.port";
 import { PlayerSessionPort } from "../../../application/ports/outbound/player-session.port";
 import { matchEventsChannel } from "../../../infrastructure/outbound/redis-event-publisher";
@@ -65,11 +69,18 @@ export class WsGameAdapter {
       }
 
       try {
-        await this.dispatch(ctx, parsed, subscribeToMatch, unsubscribeFromMatch);
+        await this.dispatch(
+          ctx,
+          parsed,
+          subscribeToMatch,
+          unsubscribeFromMatch,
+        );
       } catch (err) {
         this.sendError(
           socket,
-          err instanceof Error ? toWsError(err.message) : WS_ERROR.UNKNOWN_ERROR,
+          err instanceof Error
+            ? toWsError(err.message)
+            : WS_ERROR.UNKNOWN_ERROR,
         );
       }
     });
@@ -101,6 +112,16 @@ export class WsGameAdapter {
           matchId: msg.matchId,
           gameType: msg.gameType,
           delta: msg.delta,
+        });
+      case "penalty-kick":
+        return this.commands.submitPenaltyKick({
+          playerId: ctx.playerId,
+          matchId: msg.matchId,
+          gameType: msg.gameType,
+          directionIndex: msg.directionIndex,
+          won: msg.won,
+          scoreWon: msg.scoreWon,
+          stakeAmount: msg.stakeAmount,
         });
       case "leave":
         await this.commands.leaveMatch({

@@ -22,5 +22,12 @@ export interface WalletLedgerRepository {
     reference: string;
     sagaId?: string;
   }): Promise<void>;
+  debitGameWallet(input: {
+    userId: PlayerId;
+    gameType: GameType;
+    amount: number;
+    reference: string;
+    sagaId?: string;
+  }): Promise<void>;
   listTransactionsByUser(userId: PlayerId): Promise<WalletTransactionRecord[]>;
 }

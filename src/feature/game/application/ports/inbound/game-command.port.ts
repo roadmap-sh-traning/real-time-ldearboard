@@ -17,6 +17,16 @@ export interface GameCommandPort {
     delta: number;
   }): Promise<void>;
 
+  submitPenaltyKick(input: {
+    playerId: PlayerId;
+    matchId: MatchId;
+    gameType: "penalty-kicks";
+    directionIndex: number;
+    won: boolean;
+    scoreWon: number;
+    stakeAmount: number;
+  }): Promise<void>;
+
   leaveMatch(input: {
     playerId: PlayerId;
     matchId: MatchId;

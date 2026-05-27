@@ -74,6 +74,33 @@ class InMemoryWalletLedgerRepository {
     });
   }
 
+  async debitGameWallet(input: {
+    userId: number;
+    gameType: GameType;
+    amount: number;
+    reference: string;
+    sagaId?: string;
+  }): Promise<void> {
+    const snapshot = await this.ensureAccounts({
+      userId: input.userId,
+      gameType: input.gameType,
+    });
+    this.gameBalances.set(
+      this.getGameKey(input.userId, input.gameType),
+      snapshot.gameBalance - input.amount,
+    );
+    this.transactions.push({
+      userId: input.userId,
+      gameType: input.gameType,
+      sagaId: input.sagaId,
+      type: "game-debit",
+      amount: input.amount,
+      reference: input.reference,
+      mainBalanceAfter: snapshot.mainBalance,
+      gameBalanceAfter: snapshot.gameBalance - input.amount,
+    });
+  }
+
   async transferFunds(input: {
     userId: number;
     gameType: GameType;
@@ -153,6 +180,13 @@ async function loadWalletModules(): Promise<{
       reference: string;
       sagaId?: string;
     }): Promise<WalletBalanceSnapshot>;
+    debitGameWallet(input: {
+      userId: number;
+      gameType: GameType;
+      amount: number;
+      reference: string;
+      sagaId?: string;
+    }): Promise<WalletBalanceSnapshot>;
     getTransactionHistory(input: {
       userId: number;
     }): Promise<WalletTransactionRecord[]>;
@@ -171,6 +205,13 @@ async function loadWalletModules(): Promise<{
           gameType: GameType;
         }): Promise<WalletBalanceSnapshot>;
         transferToGameWallet(input: {
+          userId: number;
+          gameType: GameType;
+          amount: number;
+          reference: string;
+          sagaId?: string;
+        }): Promise<WalletBalanceSnapshot>;
+        debitGameWallet(input: {
           userId: number;
           gameType: GameType;
           amount: number;
@@ -310,6 +351,38 @@ test("wallet start saga keeps reserved funds in the game wallet when initializat
     },
   );
   assert.equal((await sagas.findById("saga-1"))?.status, "completed");
+});
+
+test("wallet service debits only the game wallet balance", async () => {
+  const { WalletService } = await loadWalletModules();
+  const ledger = new InMemoryWalletLedgerRepository();
+  const wallets = new WalletService(ledger);
+
+  await wallets.creditSharedWallet({
+    userId: 7,
+    amount: 100,
+    reference: "initial-funding",
+  });
+  await wallets.transferToGameWallet({
+    userId: 7,
+    gameType: "penalty-kicks",
+    amount: 40,
+    reference: "penalty-entry",
+  });
+
+  const balances = await wallets.debitGameWallet({
+    userId: 7,
+    gameType: "penalty-kicks",
+    amount: 12,
+    reference: "penalty-miss",
+  });
+
+  assert.deepEqual(balances, {
+    userId: 7,
+    gameType: "penalty-kicks",
+    mainBalance: 60,
+    gameBalance: 28,
+  });
 });
 
 test("wallet start saga compensates reserved funds when game initialization fails", async () => {

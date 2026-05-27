@@ -50,6 +50,31 @@ export class WalletService {
     });
   }
 
+  async debitGameWallet(input: {
+    userId: PlayerId;
+    gameType: GameType;
+    amount: number;
+    reference: string;
+    sagaId?: string;
+  }): Promise<WalletBalanceSnapshot> {
+    this.assertPositiveIntegerAmount(input.amount);
+
+    const balances = await this.ledger.ensureAccounts({
+      userId: input.userId,
+      gameType: input.gameType,
+    });
+
+    if (balances.gameBalance < input.amount) {
+      throw new Error("Insufficient game wallet balance");
+    }
+
+    await this.ledger.debitGameWallet(input);
+    return this.ledger.ensureAccounts({
+      userId: input.userId,
+      gameType: input.gameType,
+    });
+  }
+
   async getTransactionHistory(input: {
     userId: PlayerId;
   }): Promise<WalletTransactionRecord[]> {

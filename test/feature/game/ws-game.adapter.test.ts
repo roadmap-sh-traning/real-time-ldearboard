@@ -29,6 +29,7 @@ class FakePlayerSessions implements PlayerSessionPort {
 const commands: GameCommandPort = {
   async joinMatch(): Promise<void> {},
   async submitScore(): Promise<void> {},
+  async submitPenaltyKick(): Promise<void> {},
   async leaveMatch(): Promise<void> {},
 };
 

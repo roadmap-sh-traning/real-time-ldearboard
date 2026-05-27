@@ -27,9 +27,20 @@ export const leaveMatchMessage = Type.Object({
   gameType: gameTypeSchema,
 });
 
+export const penaltyKickMessage = Type.Object({
+  type: Type.Literal("penalty-kick"),
+  matchId: Type.String({ minLength: 1 }),
+  gameType: Type.Literal("penalty-kicks"),
+  directionIndex: Type.Integer({ minimum: 0, maximum: 3 }),
+  won: Type.Boolean(),
+  scoreWon: Type.Integer({ minimum: 0 }),
+  stakeAmount: Type.Integer({ minimum: 0 }),
+});
+
 export const incomingMessage = Type.Union([
   joinMatchMessage,
   submitScoreMessage,
+  penaltyKickMessage,
   leaveMatchMessage,
 ]);
 

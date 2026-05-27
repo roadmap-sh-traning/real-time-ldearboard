@@ -8,8 +8,10 @@ import {
   GameHandlerResolver,
   JoinMatchCommand,
   LeaveMatchCommand,
+  SubmitPenaltyKickCommand,
   SubmitScoreCommand,
 } from "./game-handler-registry";
+import { WalletService } from "../../../wallet/application/services/wallet.service";
 import { createDefaultGameHandlers } from "./default-game-handlers";
 
 export class GamesService implements GameCommandPort {
@@ -23,6 +25,10 @@ export class GamesService implements GameCommandPort {
     return this.handlers.getHandler(input.gameType).submitScore(input);
   }
 
+  async submitPenaltyKick(input: SubmitPenaltyKickCommand): Promise<void> {
+    return this.handlers.getHandler(input.gameType).submitPenaltyKick(input);
+  }
+
   async leaveMatch(input: LeaveMatchCommand): Promise<void> {
     return this.handlers.getHandler(input.gameType).leaveMatch(input);
   }
@@ -34,12 +40,18 @@ export class GameService extends GamesService {
     matches: MatchRepository,
     scoreEvents: ScoreEventRepository,
     events: EventPublisher,
+    wallets: WalletService,
   ) {
-    super(new GameHandlerRegistry(createDefaultGameHandlers(
-      players,
-      matches,
-      scoreEvents,
-      events,
-    )));
+    super(
+      new GameHandlerRegistry(
+        createDefaultGameHandlers(
+          players,
+          matches,
+          scoreEvents,
+          events,
+          wallets,
+        ),
+      ),
+    );
   }
 }

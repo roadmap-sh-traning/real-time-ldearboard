@@ -3,6 +3,9 @@ import { GameType } from "../../domain/game-type";
 
 export type JoinMatchCommand = Parameters<GameCommandPort["joinMatch"]>[0];
 export type SubmitScoreCommand = Parameters<GameCommandPort["submitScore"]>[0];
+export type SubmitPenaltyKickCommand = Parameters<
+  GameCommandPort["submitPenaltyKick"]
+>[0];
 export type LeaveMatchCommand = Parameters<GameCommandPort["leaveMatch"]>[0];
 
 export interface GameHandler extends GameCommandPort {

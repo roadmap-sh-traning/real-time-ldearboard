@@ -5,6 +5,7 @@ export const walletTransactionTypes = [
   "credit",
   "main-to-game",
   "game-to-main",
+  "game-debit",
 ] as const;
 
 export type WalletTransactionType = (typeof walletTransactionTypes)[number];

@@ -17,6 +17,30 @@ import { Match } from "../../../src/feature/game/domain/match";
 import { Player, PlayerId } from "../../../src/feature/game/domain/player";
 import { ScoreEventRecord } from "../../../src/feature/game/domain/score-event";
 import { incomingMessage } from "../../../src/feature/game/infrastructure/inbound/websocket/ws-message.schema";
+import { WalletService } from "../../../src/feature/wallet/application/services/wallet.service";
+import { GameType } from "../../../src/feature/game/domain/game-type";
+
+class StubWalletLedgerRepository {
+  async ensureAccounts(input: { userId: number; gameType: GameType }) {
+    return {
+      userId: input.userId,
+      gameType: input.gameType,
+      mainBalance: 0,
+      gameBalance: 0,
+    };
+  }
+
+  async creditMainWallet(): Promise<void> {}
+  async transferFunds(): Promise<void> {}
+  async debitGameWallet(): Promise<void> {}
+  async listTransactionsByUser() {
+    return [];
+  }
+}
+
+function createTestWalletService(): WalletService {
+  return new WalletService(new StubWalletLedgerRepository() as never);
+}
 
 class InMemoryPlayerRepository implements PlayerRepository {
   private readonly players = new Map<PlayerId, Player>();
@@ -76,6 +100,7 @@ test("joinMatch carries gameType into matches and events", async () => {
     matches,
     scoreEvents,
     eventPublisher,
+    createTestWalletService(),
   );
 
   await service.joinMatch({
@@ -111,6 +136,7 @@ test("submitScore stores and publishes typed score updates", async () => {
     matches,
     scoreEvents,
     eventPublisher,
+    createTestWalletService(),
   );
 
   await service.submitScore({
@@ -141,6 +167,7 @@ test("GameService preserves default score tracking for non-score game types", as
     matches,
     scoreEvents,
     eventPublisher,
+    createTestWalletService(),
   );
 
   await service.joinMatch({
@@ -186,6 +213,7 @@ test("GameService still rejects commands when the persisted match type differs",
     matches,
     new InMemoryScoreEventRepository(),
     new RecordingEventPublisher(),
+    createTestWalletService(),
   );
 
   await assert.rejects(
@@ -233,6 +261,18 @@ test("incoming websocket messages require a supported gameType", () => {
     }),
     true,
   );
+  assert.equal(
+    Value.Check(incomingMessage, {
+      type: "penalty-kick",
+      matchId: "match-1",
+      gameType: "penalty-kicks",
+      directionIndex: 1,
+      won: true,
+      scoreWon: 20,
+      stakeAmount: 0,
+    }),
+    true,
+  );
 });
 
 test("GamesService delegates commands through the registered game handler", async () => {
@@ -252,6 +292,7 @@ test("GamesService delegates commands through the registered game handler", asyn
     async submitScore(input): Promise<void> {
       calls.push({ method: "score", gameType: input.gameType, matchId: input.matchId });
     },
+    async submitPenaltyKick(): Promise<void> {},
     async leaveMatch(input): Promise<void> {
       calls.push({ method: "leave", gameType: input.gameType, matchId: input.matchId });
     },
@@ -263,6 +304,7 @@ test("GamesService delegates commands through the registered game handler", asyn
     async submitScore(input): Promise<void> {
       calls.push({ method: "score", gameType: input.gameType, matchId: input.matchId });
     },
+    async submitPenaltyKick(): Promise<void> {},
     async leaveMatch(input): Promise<void> {
       calls.push({ method: "leave", gameType: input.gameType, matchId: input.matchId });
     },
@@ -330,6 +372,7 @@ test("GameHandlerRegistry rejects duplicate game handlers", () => {
     gameType,
     async joinMatch(): Promise<void> {},
     async submitScore(): Promise<void> {},
+    async submitPenaltyKick(): Promise<void> {},
     async leaveMatch(): Promise<void> {},
   });
 
@@ -349,6 +392,7 @@ test("GameHandlerRegistry rejects unsupported game types", () => {
       gameType: "score",
       async joinMatch(): Promise<void> {},
       async submitScore(): Promise<void> {},
+      async submitPenaltyKick(): Promise<void> {},
       async leaveMatch(): Promise<void> {},
     },
   ]);
@@ -374,6 +418,7 @@ test("default game handlers are composed outside GameService", () => {
       matches: MatchRepository,
       scoreEvents: ScoreEventRepository,
       events: EventPublisher,
+      wallets: WalletService,
     ) => GameHandler[];
   };
 
@@ -384,6 +429,7 @@ test("default game handlers are composed outside GameService", () => {
     new InMemoryMatchRepository(),
     new InMemoryScoreEventRepository(),
     new RecordingEventPublisher(),
+    createTestWalletService(),
   );
 
   assert.deepEqual(

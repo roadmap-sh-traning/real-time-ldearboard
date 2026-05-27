@@ -208,6 +208,75 @@ export class DrizzleWalletLedgerRepository implements WalletLedgerRepository {
     });
   }
 
+  async debitGameWallet(input: {
+    userId: PlayerId;
+    gameType: GameType;
+    amount: number;
+    reference: string;
+    sagaId?: string;
+  }): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const now = new Date();
+
+      await tx
+        .insert(schema.gameWalletAccounts)
+        .values({
+          userId: input.userId,
+          gameType: input.gameType,
+          balance: 0,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing();
+
+      const [mainWallet] = await tx
+        .select({ balance: schema.walletAccounts.balance })
+        .from(schema.walletAccounts)
+        .where(eq(schema.walletAccounts.userId, input.userId))
+        .limit(1);
+
+      const [gameWallet] = await tx
+        .select({ balance: schema.gameWalletAccounts.balance })
+        .from(schema.gameWalletAccounts)
+        .where(
+          and(
+            eq(schema.gameWalletAccounts.userId, input.userId),
+            eq(schema.gameWalletAccounts.gameType, input.gameType),
+          ),
+        )
+        .limit(1);
+
+      const mainBalance = mainWallet?.balance ?? 0;
+      const currentGameBalance = gameWallet?.balance ?? 0;
+      const nextGameBalance = currentGameBalance - input.amount;
+
+      await tx
+        .update(schema.gameWalletAccounts)
+        .set({
+          balance: nextGameBalance,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(schema.gameWalletAccounts.userId, input.userId),
+            eq(schema.gameWalletAccounts.gameType, input.gameType),
+          ),
+        );
+
+      await tx.insert(schema.walletTransactions).values({
+        userId: input.userId,
+        gameType: input.gameType,
+        sagaId: input.sagaId ?? null,
+        type: "game-debit",
+        amount: input.amount,
+        reference: input.reference,
+        mainBalanceAfter: mainBalance,
+        gameBalanceAfter: nextGameBalance,
+        createdAt: now,
+      });
+    });
+  }
+
   async listTransactionsByUser(
     userId: PlayerId,
   ): Promise<WalletTransactionRecord[]> {
