@@ -72,28 +72,29 @@ export class DrizzleMatchRepository implements MatchRepository {
 
       const activeIds = new Set(activePlayers.map((row) => row.userId));
 
-      tx.insert(schema.matchTables)
-
       const values = [...match.playerIds]
-      .filter((userId) => !activeIds.has(userId))
-      .map((userId) => ({
-        matchId: match.id,
-        userId,
-        joinedAt: new Date(),
-        leftAt: null,
-      }));
+        .filter((userId) => !activeIds.has(userId))
+        .map((userId) => ({
+          matchId: match.id,
+          userId,
+          joinedAt: new Date(),
+          leftAt: null,
+        }));
 
-      await tx.insert(schema.matchTables).values(values);
-
+      if (values.length > 0) {
+        await tx.insert(schema.matchTables).values(values);
+      }
 
       const updateMatchTableIds = activePlayers
-      .filter((player) => !match.playerIds.has(player.userId))
-      .map((p) => p.id)
-     
-      await tx
-      .update(schema.matchTables)
-      .set({ leftAt: new Date() })
-      .where(inArray(schema.matchTables.id, updateMatchTableIds));
+        .filter((player) => !match.playerIds.has(player.userId))
+        .map((p) => p.id);
+
+      if (updateMatchTableIds.length > 0) {
+        await tx
+          .update(schema.matchTables)
+          .set({ leftAt: new Date() })
+          .where(inArray(schema.matchTables.id, updateMatchTableIds));
+      }
     });
   }
 }
