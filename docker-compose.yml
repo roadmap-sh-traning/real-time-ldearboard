@@ -11,14 +11,10 @@ services:
       redis:
         condition: service_healthy
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-
+      DATABASE_URL: postgresql://real-time-lb:real-time-lb@postgres:5432/real-time-lb
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-
-    volumes:
-      - .:/app
 
   postgres:
     image: postgres:16-alpine
@@ -32,6 +28,11 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U real-time-lb -d real-time-lb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -42,6 +43,11 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   postgres_data:

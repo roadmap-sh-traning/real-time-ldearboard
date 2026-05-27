@@ -908,21 +908,101 @@
         }
       });
 
+      function gameTypeValue() {
+        return $("gameType").value.trim() || "score";
+      }
+
       $("sendJoin").addEventListener("click", () =>
-        sendGame({ type: "join", matchId: $("matchId").value.trim() || "match-1" }),
+        sendGame({
+          type: "join",
+          matchId: matchIdValue(),
+          gameType: gameTypeValue(),
+        }),
       );
 
       $("sendScore").addEventListener("click", () =>
         sendGame({
           type: "score",
-          matchId: $("matchId").value.trim() || "match-1",
+          matchId: matchIdValue(),
+          gameType: gameTypeValue(),
           delta: Number($("delta").value) || 0,
         }),
       );
 
       $("sendLeave").addEventListener("click", () =>
-        sendGame({ type: "leave", matchId: $("matchId").value.trim() || "match-1" }),
+        sendGame({
+          type: "leave",
+          matchId: matchIdValue(),
+          gameType: gameTypeValue(),
+        }),
       );
+
+      $("penaltyJoin").addEventListener("click", () => {
+        sendGame({
+          type: "join",
+          matchId: matchIdValue(),
+          gameType: "penalty-kicks",
+        });
+        penaltyMatchJoined = true;
+        setPenaltyWorkspaceEnabled(true);
+        log("gameEvents", "system", "Joined penalty match", { matchId: matchIdValue() });
+      });
+
+      $("penaltyLeave").addEventListener("click", () => {
+        sendGame({
+          type: "leave",
+          matchId: matchIdValue(),
+          gameType: "penalty-kicks",
+        });
+        penaltyMatchJoined = false;
+        setPenaltyWorkspaceEnabled(gameWs?.readyState === WebSocket.OPEN);
+      });
+
+      document.querySelectorAll(".kick-dot").forEach((dot) => {
+        dot.addEventListener("click", () => {
+          const directionIndex = Number(dot.getAttribute("data-direction"));
+          sendGame({
+            type: "penalty-kick",
+            matchId: matchIdValue(),
+            gameType: "penalty-kicks",
+            directionIndex,
+          });
+        });
+      });
+
+      $("winModalClose").addEventListener("click", hideWinModal);
+      $("winModal").addEventListener("click", (ev) => {
+        if (ev.target === $("winModal")) hideWinModal();
+      });
+
+      $("uploadPrize").addEventListener("click", async () => {
+        const fileInput = $("prizeExcel");
+        const file = fileInput.files?.[0];
+        if (!file) {
+          log("gameEvents", "error", "Choose an .xlsx file first");
+          return;
+        }
+
+        try {
+          const token = getToken();
+          const body = new FormData();
+          body.append("file", file);
+          const res = await fetch(`${httpBase()}/api/penalty-kicks/prize-sequence`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.message || res.statusText);
+          }
+          log("gameEvents", "system", "Prize sequence uploaded", data);
+        } catch (e) {
+          log("gameEvents", "error", "Upload failed", { message: e.message });
+        }
+      });
+
+      setPenaltyWorkspaceEnabled(false);
     </script>
   </body>
 </html>

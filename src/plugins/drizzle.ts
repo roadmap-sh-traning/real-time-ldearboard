@@ -15,8 +15,6 @@ export default fp(async (fastify) => {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    port: 5433,
-    host: "127.0.0.1",
   });
 
   const db = drizzle(pool, { schema });
