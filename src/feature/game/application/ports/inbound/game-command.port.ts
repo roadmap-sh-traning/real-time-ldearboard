@@ -8,6 +8,7 @@ export interface GameCommandPort {
     playerName: string;
     matchId: MatchId;
     gameType: GameType;
+    sequenceId?: string;
   }): Promise<void>;
 
   submitScore(input: {

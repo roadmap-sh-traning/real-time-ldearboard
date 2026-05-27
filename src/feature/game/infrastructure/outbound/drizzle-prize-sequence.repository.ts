@@ -14,6 +14,20 @@ import { PrizeSequenceRepository } from "../../application/ports/outbound/prize-
 export class DrizzlePrizeSequenceRepository implements PrizeSequenceRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  async getSequenceById(
+    sequenceId: string,
+  ): Promise<PenaltyKickPrizeSequence | undefined> {
+    const [sequenceRow] = await this.db
+      .select()
+      .from(schema.gamePrizeSequences)
+      .where(eq(schema.gamePrizeSequences.id, sequenceId))
+      .limit(1);
+
+    if (!sequenceRow) return undefined;
+
+    return this.loadSequenceWithSteps(sequenceRow);
+  }
+
   async getActiveSequence(
     gameType: GameType,
   ): Promise<PenaltyKickPrizeSequence | undefined> {
@@ -30,18 +44,30 @@ export class DrizzlePrizeSequenceRepository implements PrizeSequenceRepository {
 
     if (!sequenceRow) return undefined;
 
-    const stepRows = await this.db
-      .select()
-      .from(schema.gamePrizeSequenceSteps)
-      .where(eq(schema.gamePrizeSequenceSteps.sequenceId, sequenceRow.id))
-      .orderBy(asc(schema.gamePrizeSequenceSteps.stepIndex));
+    return this.loadSequenceWithSteps(sequenceRow);
+  }
 
-    return {
-      id: sequenceRow.id,
-      gameType: sequenceRow.gameType as GameType,
-      createdAt: sequenceRow.createdAt,
-      steps: stepRows.map(toDomainStep),
-    };
+  async saveSequence(sequence: PenaltyKickPrizeSequence): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.insert(schema.gamePrizeSequences).values({
+        id: sequence.id,
+        gameType: sequence.gameType,
+        isActive: 0,
+        createdAt: sequence.createdAt,
+      });
+
+      if (sequence.steps.length > 0) {
+        await tx.insert(schema.gamePrizeSequenceSteps).values(
+          sequence.steps.map((step) => ({
+            sequenceId: sequence.id,
+            stepIndex: step.stepIndex,
+            won: step.won ? 1 : 0,
+            prizeAmount: step.prizeAmount,
+            stakeAmount: step.stakeAmount,
+          })),
+        );
+      }
+    });
   }
 
   async replaceActiveSequence(sequence: PenaltyKickPrizeSequence): Promise<void> {
@@ -141,6 +167,25 @@ export class DrizzlePrizeSequenceRepository implements PrizeSequenceRepository {
     };
     await this.resetProgress(updated);
     return updated;
+  }
+
+  private async loadSequenceWithSteps(sequenceRow: {
+    id: string;
+    gameType: string;
+    createdAt: Date;
+  }): Promise<PenaltyKickPrizeSequence> {
+    const stepRows = await this.db
+      .select()
+      .from(schema.gamePrizeSequenceSteps)
+      .where(eq(schema.gamePrizeSequenceSteps.sequenceId, sequenceRow.id))
+      .orderBy(asc(schema.gamePrizeSequenceSteps.stepIndex));
+
+    return {
+      id: sequenceRow.id,
+      gameType: sequenceRow.gameType as GameType,
+      createdAt: sequenceRow.createdAt,
+      steps: stepRows.map(toDomainStep),
+    };
   }
 }
 

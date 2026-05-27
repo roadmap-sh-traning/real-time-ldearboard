@@ -133,24 +133,36 @@ class InMemoryWalletLedgerRepository {
   }
 }
 
+const defaultTestSequence: PenaltyKickPrizeSequence = {
+  id: "sequence-test",
+  gameType: "penalty-kicks",
+  createdAt: new Date(),
+  steps: [
+    { stepIndex: 0, won: true, prizeAmount: 15, stakeAmount: 0 },
+    { stepIndex: 1, won: false, prizeAmount: 0, stakeAmount: 10 },
+  ],
+};
+
 class InMemoryPrizeSequenceRepository implements PrizeSequenceRepository {
-  private activeSequence: PenaltyKickPrizeSequence = {
-    id: "sequence-test",
-    gameType: "penalty-kicks",
-    createdAt: new Date(),
-    steps: [
-      { stepIndex: 0, won: true, prizeAmount: 15, stakeAmount: 0 },
-      { stepIndex: 1, won: false, prizeAmount: 0, stakeAmount: 10 },
-    ],
-  };
+  private readonly sequences = new Map<string, PenaltyKickPrizeSequence>([
+    [defaultTestSequence.id, defaultTestSequence],
+  ]);
   private readonly progress = new Map<string, PenaltyKickProgress>();
 
+  async getSequenceById(sequenceId: string) {
+    return this.sequences.get(sequenceId);
+  }
+
   async getActiveSequence() {
-    return this.activeSequence;
+    return defaultTestSequence;
+  }
+
+  async saveSequence(sequence: PenaltyKickPrizeSequence) {
+    this.sequences.set(sequence.id, sequence);
   }
 
   async replaceActiveSequence(sequence: PenaltyKickPrizeSequence) {
-    this.activeSequence = sequence;
+    this.sequences.set(sequence.id, sequence);
   }
 
   async getProgress(input: { userId: number; matchId: string }) {
@@ -199,6 +211,21 @@ function createPenaltyKickService() {
   return { service, players, eventPublisher, wallets, ledger };
 }
 
+test("penalty kick join requires sequenceId", async () => {
+  const { service } = createPenaltyKickService();
+
+  await assert.rejects(
+    () =>
+      service.joinMatch({
+        playerId: 7,
+        playerName: "alice@example.com",
+        matchId: "match-penalty",
+        gameType: "penalty-kicks",
+      }),
+    /sequenceId is required/,
+  );
+});
+
 test("penalty kick win uses prize sequence and credits main wallet", async () => {
   const { service, players, eventPublisher, wallets, ledger } =
     createPenaltyKickService();
@@ -217,6 +244,7 @@ test("penalty kick win uses prize sequence and credits main wallet", async () =>
     playerName: "alice@example.com",
     matchId: "match-penalty",
     gameType: "penalty-kicks",
+    sequenceId: "sequence-test",
   });
 
   await service.submitPenaltyKick({
@@ -261,6 +289,7 @@ test("penalty kick loss uses next sequence step and debits game wallet", async (
     playerName: "alice@example.com",
     matchId: "match-penalty",
     gameType: "penalty-kicks",
+    sequenceId: "sequence-test",
   });
 
   await service.submitPenaltyKick({

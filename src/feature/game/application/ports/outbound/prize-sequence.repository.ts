@@ -8,7 +8,11 @@ import {
 } from "../../../domain/penalty-kick-prize-sequence";
 
 export interface PrizeSequenceRepository {
+  getSequenceById(
+    sequenceId: PrizeSequenceId,
+  ): Promise<PenaltyKickPrizeSequence | undefined>;
   getActiveSequence(gameType: GameType): Promise<PenaltyKickPrizeSequence | undefined>;
+  saveSequence(sequence: PenaltyKickPrizeSequence): Promise<void>;
   replaceActiveSequence(sequence: PenaltyKickPrizeSequence): Promise<void>;
   getProgress(input: {
     userId: PlayerId;

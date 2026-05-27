@@ -465,10 +465,13 @@
     <section class="penalty-workspace" aria-label="Penalty kick test workspace">
       <h2>Penalty kick test workspace</h2>
       <p>
-        Upload a prize sequence Excel, connect WS, join the match, then click a direction dot.
-        Wins open a modal with the prize from the server sequence.
+        Upload Excel → copy <code>sequenceId</code> → join with that id → click a direction dot.
       </p>
       <div class="penalty-toolbar">
+        <div class="field">
+          <label for="sequenceId">sequenceId</label>
+          <input id="sequenceId" type="text" placeholder="Filled after upload" />
+        </div>
         <button type="button" id="penaltyJoin" class="secondary" disabled>
           Join penalty match
         </button>
@@ -938,14 +941,24 @@
       );
 
       $("penaltyJoin").addEventListener("click", () => {
+        const sequenceId = $("sequenceId").value.trim();
+        if (!sequenceId) {
+          log("gameEvents", "error", "Upload a sequence or paste sequenceId first");
+          return;
+        }
+
         sendGame({
           type: "join",
           matchId: matchIdValue(),
           gameType: "penalty-kicks",
+          sequenceId,
         });
         penaltyMatchJoined = true;
         setPenaltyWorkspaceEnabled(true);
-        log("gameEvents", "system", "Joined penalty match", { matchId: matchIdValue() });
+        log("gameEvents", "system", "Joined penalty match", {
+          matchId: matchIdValue(),
+          sequenceId,
+        });
       });
 
       $("penaltyLeave").addEventListener("click", () => {
@@ -996,7 +1009,10 @@
           if (!res.ok) {
             throw new Error(data.message || res.statusText);
           }
-          log("gameEvents", "system", "Prize sequence uploaded", data);
+          if (data.sequenceId) {
+            $("sequenceId").value = data.sequenceId;
+          }
+          log("gameEvents", "system", "Prize sequence uploaded — use sequenceId to join", data);
         } catch (e) {
           log("gameEvents", "error", "Upload failed", { message: e.message });
         }

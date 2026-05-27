@@ -104,6 +104,7 @@ export class WsGameAdapter {
           playerName: ctx.playerName,
           matchId: msg.matchId,
           gameType: msg.gameType,
+          sequenceId: msg.sequenceId,
         });
         return subscribeToMatch(msg.matchId);
       case "score":

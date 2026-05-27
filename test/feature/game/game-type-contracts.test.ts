@@ -57,8 +57,16 @@ class StubPrizeSequenceRepository implements PrizeSequenceRepository {
   };
   private readonly progress = new Map<string, PenaltyKickProgress>();
 
+  async getSequenceById(sequenceId: string) {
+    return sequenceId === this.sequence.id ? this.sequence : undefined;
+  }
+
   async getActiveSequence() {
     return this.sequence;
+  }
+
+  async saveSequence(sequence: PenaltyKickPrizeSequence) {
+    Object.assign(this.sequence, sequence);
   }
 
   async replaceActiveSequence(sequence: PenaltyKickPrizeSequence) {

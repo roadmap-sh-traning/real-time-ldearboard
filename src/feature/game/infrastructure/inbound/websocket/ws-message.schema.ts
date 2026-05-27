@@ -12,6 +12,7 @@ export const joinMatchMessage = Type.Object({
   type: Type.Literal("join"),
   matchId: Type.String({ minLength: 1 }),
   gameType: gameTypeSchema,
+  sequenceId: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export const submitScoreMessage = Type.Object({

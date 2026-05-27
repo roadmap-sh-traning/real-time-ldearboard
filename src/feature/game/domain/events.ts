@@ -14,6 +14,8 @@ export interface PlayerJoinedMatchEvent {
   gameType: GameType;
   playerId: PlayerId;
   playerName: string;
+  sequenceId?: string;
+  totalSteps?: number;
   at: Date;
 }
 

@@ -56,11 +56,17 @@ export default async function penaltyKickPrizeSequenceRoutes(
     }
   });
 
-  fs.get("/", { preHandler: fs.authenticate }, async (_request, reply) => {
-    const sequence = await prizeSequences.getActiveSequence("penalty-kicks");
+  fs.get("/", { preHandler: fs.authenticate }, async (request, reply) => {
+    const sequenceId = (request.query as { sequenceId?: string }).sequenceId?.trim();
+    const sequence = sequenceId
+      ? await prizeSequences.getSequenceById(sequenceId)
+      : await prizeSequences.getActiveSequence("penalty-kicks");
+
     if (!sequence) {
       return reply.status(404).send({
-        message: "No active prize sequence configured for penalty-kicks",
+        message: sequenceId
+          ? `Prize sequence ${sequenceId} not found`
+          : "No prize sequence found. Upload one and join with its sequenceId.",
       });
     }
 

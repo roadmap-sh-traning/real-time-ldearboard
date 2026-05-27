@@ -17,15 +17,25 @@ function buildWorkbookBuffer(rows: Record<string, string | number>[]): Buffer {
 }
 
 class InMemoryPrizeSequenceRepository implements PrizeSequenceRepository {
+  private readonly sequences = new Map<string, PenaltyKickPrizeSequence>();
   private activeSequence?: PenaltyKickPrizeSequence;
   private readonly progress = new Map<string, PenaltyKickProgress>();
+
+  async getSequenceById(sequenceId: string) {
+    return this.sequences.get(sequenceId);
+  }
 
   async getActiveSequence() {
     return this.activeSequence;
   }
 
+  async saveSequence(sequence: PenaltyKickPrizeSequence): Promise<void> {
+    this.sequences.set(sequence.id, sequence);
+  }
+
   async replaceActiveSequence(sequence: PenaltyKickPrizeSequence): Promise<void> {
     this.activeSequence = sequence;
+    this.sequences.set(sequence.id, sequence);
   }
 
   async getProgress(input: { userId: number; matchId: string }) {
@@ -76,8 +86,12 @@ test("prize sequence service activates uploaded excel and serves steps in order"
     { outcome: "loss", prize: 0, stake: 5 },
   ]);
 
-  await service.uploadFromExcel({ fileBuffer: buffer });
-  await service.initializeMatchProgress({ userId: 7, matchId: "match-1" });
+  const uploaded = await service.uploadFromExcel({ fileBuffer: buffer });
+  await service.initializeMatchProgress({
+    userId: 7,
+    matchId: "match-1",
+    sequenceId: uploaded.id,
+  });
 
   const firstKick = await service.getStepForKick({ userId: 7, matchId: "match-1" });
   assert.equal(firstKick.step.prizeAmount, 12);
