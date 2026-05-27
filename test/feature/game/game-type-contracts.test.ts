@@ -18,7 +18,13 @@ import { Player, PlayerId } from "../../../src/feature/game/domain/player";
 import { ScoreEventRecord } from "../../../src/feature/game/domain/score-event";
 import { incomingMessage } from "../../../src/feature/game/infrastructure/inbound/websocket/ws-message.schema";
 import { WalletService } from "../../../src/feature/wallet/application/services/wallet.service";
+import { PenaltyKickPrizeSequenceService } from "../../../src/feature/game/application/services/penalty-kick-prize-sequence.service";
 import { GameType } from "../../../src/feature/game/domain/game-type";
+import {
+  PenaltyKickPrizeSequence,
+  PenaltyKickProgress,
+} from "../../../src/feature/game/domain/penalty-kick-prize-sequence";
+import { PrizeSequenceRepository } from "../../../src/feature/game/application/ports/outbound/prize-sequence.repository";
 
 class StubWalletLedgerRepository {
   async ensureAccounts(input: { userId: number; gameType: GameType }) {
@@ -40,6 +46,51 @@ class StubWalletLedgerRepository {
 
 function createTestWalletService(): WalletService {
   return new WalletService(new StubWalletLedgerRepository() as never);
+}
+
+class StubPrizeSequenceRepository implements PrizeSequenceRepository {
+  private readonly sequence: PenaltyKickPrizeSequence = {
+    id: "sequence-stub",
+    gameType: "penalty-kicks",
+    createdAt: new Date(),
+    steps: [{ stepIndex: 0, won: true, prizeAmount: 1, stakeAmount: 0 }],
+  };
+  private readonly progress = new Map<string, PenaltyKickProgress>();
+
+  async getActiveSequence() {
+    return this.sequence;
+  }
+
+  async replaceActiveSequence(sequence: PenaltyKickPrizeSequence) {
+    Object.assign(this.sequence, sequence);
+  }
+
+  async getProgress(input: { userId: number; matchId: string }) {
+    return this.progress.get(`${input.userId}:${input.matchId}`);
+  }
+
+  async resetProgress(progress: PenaltyKickProgress) {
+    this.progress.set(`${progress.userId}:${progress.matchId}`, { ...progress });
+  }
+
+  async advanceProgress(input: { userId: number; matchId: string }) {
+    const key = `${input.userId}:${input.matchId}`;
+    const existing = this.progress.get(key);
+    if (!existing) {
+      throw new Error("Penalty kick progress not found");
+    }
+
+    const updated = {
+      ...existing,
+      nextStepIndex: existing.nextStepIndex + 1,
+    };
+    this.progress.set(key, updated);
+    return updated;
+  }
+}
+
+function createTestPrizeSequenceService(): PenaltyKickPrizeSequenceService {
+  return new PenaltyKickPrizeSequenceService(new StubPrizeSequenceRepository());
 }
 
 class InMemoryPlayerRepository implements PlayerRepository {
@@ -101,6 +152,7 @@ test("joinMatch carries gameType into matches and events", async () => {
     scoreEvents,
     eventPublisher,
     createTestWalletService(),
+    createTestPrizeSequenceService(),
   );
 
   await service.joinMatch({
@@ -137,6 +189,7 @@ test("submitScore stores and publishes typed score updates", async () => {
     scoreEvents,
     eventPublisher,
     createTestWalletService(),
+    createTestPrizeSequenceService(),
   );
 
   await service.submitScore({
@@ -168,6 +221,7 @@ test("GameService preserves default score tracking for non-score game types", as
     scoreEvents,
     eventPublisher,
     createTestWalletService(),
+    createTestPrizeSequenceService(),
   );
 
   await service.joinMatch({
@@ -214,6 +268,7 @@ test("GameService still rejects commands when the persisted match type differs",
     new InMemoryScoreEventRepository(),
     new RecordingEventPublisher(),
     createTestWalletService(),
+    createTestPrizeSequenceService(),
   );
 
   await assert.rejects(
@@ -267,9 +322,6 @@ test("incoming websocket messages require a supported gameType", () => {
       matchId: "match-1",
       gameType: "penalty-kicks",
       directionIndex: 1,
-      won: true,
-      scoreWon: 20,
-      stakeAmount: 0,
     }),
     true,
   );
@@ -419,6 +471,7 @@ test("default game handlers are composed outside GameService", () => {
       scoreEvents: ScoreEventRepository,
       events: EventPublisher,
       wallets: WalletService,
+      prizeSequences: PenaltyKickPrizeSequenceService,
     ) => GameHandler[];
   };
 
@@ -430,6 +483,7 @@ test("default game handlers are composed outside GameService", () => {
     new InMemoryScoreEventRepository(),
     new RecordingEventPublisher(),
     createTestWalletService(),
+    createTestPrizeSequenceService(),
   );
 
   assert.deepEqual(

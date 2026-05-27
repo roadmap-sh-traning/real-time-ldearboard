@@ -7,6 +7,7 @@ import { GameHandler } from "./game-handler-registry";
 import { gameTypes } from "../../domain/game-type";
 import { ScoreTrackingGameHandler } from "./handlers/score-tracking-game.handler";
 import { PenaltyKicksGameHandler } from "./handlers/penalty-kicks-game.handler";
+import { PenaltyKickPrizeSequenceService } from "./penalty-kick-prize-sequence.service";
 
 const scoreTrackingGameTypes = gameTypes.filter(
   (gameType) => gameType !== "penalty-kicks",
@@ -18,6 +19,7 @@ export function createDefaultGameHandlers(
   scoreEvents: ScoreEventRepository,
   events: EventPublisher,
   wallets: WalletService,
+  prizeSequences: PenaltyKickPrizeSequenceService,
 ): GameHandler[] {
   const handlers: GameHandler[] = scoreTrackingGameTypes.map(
     (gameType) =>
@@ -31,7 +33,14 @@ export function createDefaultGameHandlers(
   );
 
   handlers.push(
-    new PenaltyKicksGameHandler(players, matches, scoreEvents, events, wallets),
+    new PenaltyKicksGameHandler(
+      players,
+      matches,
+      scoreEvents,
+      events,
+      wallets,
+      prizeSequences,
+    ),
   );
 
   return handlers;

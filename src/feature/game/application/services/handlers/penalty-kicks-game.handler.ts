@@ -3,6 +3,7 @@ import { PlayerRepository } from "../../ports/outbound/player.repository";
 import { ScoreEventRepository } from "../../ports/outbound/score-event.repository";
 import { EventPublisher } from "../../ports/outbound/event-publisher.port";
 import { WalletService } from "../../../../wallet/application/services/wallet.service";
+import { PenaltyKickPrizeSequenceService } from "../penalty-kick-prize-sequence.service";
 import {
   GameHandler,
   JoinMatchCommand,
@@ -18,6 +19,7 @@ import {
   removePlayer,
 } from "../../../domain/match";
 import { GameType } from "../../../domain/game-type";
+import { resolvePenaltyKickOutcome } from "../../../domain/penalty-kick-prize-sequence";
 import { applyScoreDelta, createPlayer } from "../../../domain/player";
 
 export class PenaltyKicksGameHandler implements GameHandler {
@@ -29,6 +31,7 @@ export class PenaltyKicksGameHandler implements GameHandler {
     private readonly scoreEvents: ScoreEventRepository,
     private readonly events: EventPublisher,
     private readonly wallets: WalletService,
+    private readonly prizeSequences: PenaltyKickPrizeSequenceService,
   ) {}
 
   async joinMatch(input: JoinMatchCommand): Promise<void> {
@@ -42,6 +45,11 @@ export class PenaltyKicksGameHandler implements GameHandler {
     const match = await this.getOrCreateMatch(input.matchId);
     const updated = addPlayer(match, input.playerId);
     await this.matches.save(updated);
+
+    await this.prizeSequences.initializeMatchProgress({
+      userId: input.playerId,
+      matchId: input.matchId,
+    });
 
     this.events.publish({
       type: "player.joined",
@@ -72,13 +80,15 @@ export class PenaltyKicksGameHandler implements GameHandler {
       throw new Error("Player not found");
     }
 
-    const reference = `penalty-kick:${input.matchId}:${input.directionIndex}`;
-    let amount = 0;
+    const { sequence, step } = await this.prizeSequences.getStepForKick({
+      userId: input.playerId,
+      matchId: input.matchId,
+    });
+    const { won, amount } = resolvePenaltyKickOutcome(step);
+    const reference = `penalty-kick:${input.matchId}:${step.stepIndex}:${input.directionIndex}`;
     let balances;
 
-    if (input.won) {
-      amount = input.scoreWon;
-      this.assertPositiveIntegerAmount(amount, "scoreWon");
+    if (won) {
       await this.wallets.creditSharedWallet({
         userId: input.playerId,
         amount,
@@ -89,8 +99,6 @@ export class PenaltyKicksGameHandler implements GameHandler {
         gameType: this.gameType,
       });
     } else {
-      amount = input.stakeAmount;
-      this.assertPositiveIntegerAmount(amount, "stakeAmount");
       balances = await this.wallets.debitGameWallet({
         userId: input.playerId,
         gameType: this.gameType,
@@ -99,8 +107,8 @@ export class PenaltyKicksGameHandler implements GameHandler {
       });
     }
 
-    const updatedPlayer = input.won ? applyScoreDelta(player, amount) : player;
-    if (input.won) {
+    const updatedPlayer = won ? applyScoreDelta(player, amount) : player;
+    if (won) {
       await this.players.save(updatedPlayer);
     }
 
@@ -108,8 +116,13 @@ export class PenaltyKicksGameHandler implements GameHandler {
       userId: input.playerId,
       matchId: input.matchId,
       gameType: this.gameType,
-      delta: input.won ? amount : -amount,
+      delta: won ? amount : -amount,
       scoreAfter: updatedPlayer.score,
+    });
+
+    const nextStepIndex = await this.prizeSequences.advanceAfterKick({
+      userId: input.playerId,
+      matchId: input.matchId,
     });
 
     this.events.publish({
@@ -118,14 +131,17 @@ export class PenaltyKicksGameHandler implements GameHandler {
       gameType: this.gameType,
       playerId: input.playerId,
       directionIndex: input.directionIndex,
-      won: input.won,
+      won,
       amount,
+      sequenceId: sequence.id,
+      sequenceStepIndex: step.stepIndex,
+      remainingSteps: Math.max(sequence.steps.length - nextStepIndex, 0),
       mainBalance: balances.mainBalance,
       gameBalance: balances.gameBalance,
       at: new Date(),
     });
 
-    if (input.won) {
+    if (won) {
       this.events.publish({
         type: "score.updated",
         matchId: input.matchId,
@@ -187,12 +203,6 @@ export class PenaltyKicksGameHandler implements GameHandler {
       throw new Error(
         "directionIndex must be a non-negative integer between 0 and 3",
       );
-    }
-  }
-
-  private assertPositiveIntegerAmount(amount: number, field: string): void {
-    if (!Number.isInteger(amount) || amount <= 0) {
-      throw new Error(`${field} must be a positive integer`);
     }
   }
 }

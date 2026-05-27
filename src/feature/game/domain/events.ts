@@ -42,6 +42,9 @@ export interface PenaltyKickResultEvent {
   directionIndex: number;
   won: boolean;
   amount: number;
+  sequenceId: string;
+  sequenceStepIndex: number;
+  remainingSteps: number;
   mainBalance: number;
   gameBalance: number;
   at: Date;

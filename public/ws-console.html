@@ -254,6 +254,115 @@
         margin: 0.5rem 0 0;
         padding-left: 1.25rem;
       }
+      .penalty-workspace {
+        margin: 0 1.25rem 1rem;
+        padding: 1rem 1.25rem;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .penalty-workspace h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+      }
+      .penalty-workspace > p {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .penalty-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: end;
+        margin-bottom: 1rem;
+      }
+      .penalty-goal {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(72px, 1fr));
+        gap: 0.75rem;
+        max-width: 520px;
+        margin: 0 auto 0.5rem;
+      }
+      .kick-dot {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: radial-gradient(circle at 35% 35%, #334155, #1e293b);
+        color: var(--text);
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      }
+      .kick-dot:hover:not(:disabled) {
+        transform: scale(1.06);
+        border-color: var(--game);
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
+      }
+      .kick-dot:active:not(:disabled) {
+        transform: scale(0.96);
+      }
+      .kick-dot:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .kick-dot .dir-label {
+        display: block;
+        font-size: 0.65rem;
+        color: var(--muted);
+        font-weight: 500;
+        margin-top: 0.15rem;
+      }
+      .penalty-hint {
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+      }
+      .modal-backdrop.hidden {
+        display: none;
+      }
+      .modal-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        max-width: 360px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      }
+      .modal-card h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1.35rem;
+        color: var(--game);
+      }
+      .modal-card .amount {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0 1rem;
+      }
+      .modal-card p {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      input[type="file"] {
+        font-size: 0.8rem;
+        color: var(--muted);
+        max-width: 220px;
+      }
     </style>
   </head>
   <body>
@@ -312,7 +421,11 @@
           </button>
           <div class="field">
             <label>matchId</label>
-            <input id="matchId" type="text" value="match-1" />
+            <input id="matchId" type="text" value="match-penalty" />
+          </div>
+          <div class="field">
+            <label>gameType</label>
+            <input id="gameType" type="text" value="score" />
           </div>
           <div class="field small">
             <label>delta</label>
@@ -349,12 +462,63 @@
       </section>
     </main>
 
+    <section class="penalty-workspace" aria-label="Penalty kick test workspace">
+      <h2>Penalty kick test workspace</h2>
+      <p>
+        Upload a prize sequence Excel, connect WS, join the match, then click a direction dot.
+        Wins open a modal with the prize from the server sequence.
+      </p>
+      <div class="penalty-toolbar">
+        <button type="button" id="penaltyJoin" class="secondary" disabled>
+          Join penalty match
+        </button>
+        <button type="button" id="penaltyLeave" class="secondary" disabled>Leave</button>
+        <div class="field">
+          <label for="prizeExcel">Prize sequence (.xlsx)</label>
+          <input id="prizeExcel" type="file" accept=".xlsx,.xls" />
+        </div>
+        <button type="button" id="uploadPrize" class="secondary">Upload sequence</button>
+      </div>
+      <div class="penalty-goal" id="penaltyGoal">
+        <button type="button" class="kick-dot" data-direction="0" disabled>
+          0<span class="dir-label">left</span>
+        </button>
+        <button type="button" class="kick-dot" data-direction="1" disabled>
+          1<span class="dir-label">left-mid</span>
+        </button>
+        <button type="button" class="kick-dot" data-direction="2" disabled>
+          2<span class="dir-label">right-mid</span>
+        </button>
+        <button type="button" class="kick-dot" data-direction="3" disabled>
+          3<span class="dir-label">right</span>
+        </button>
+      </div>
+      <p class="penalty-hint" id="penaltyHint">
+        Connect game WS and join before kicking.
+      </p>
+    </section>
+
+    <div id="winModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="winModalTitle">
+      <div class="modal-card">
+        <h3 id="winModalTitle">Goal!</h3>
+        <p>You won</p>
+        <div class="amount" id="winModalAmount">0</div>
+        <p id="winModalMeta"></p>
+        <button type="button" id="winModalClose">Continue</button>
+      </div>
+    </div>
+
     <div class="reference">
       <strong>Quick test</strong>
       <ol>
         <li>Register or login → token saved automatically.</li>
         <li>Connect <code>/ws/leaderboard</code> and <code>/ws/game</code>.</li>
         <li>On game socket: <code>join</code> then <code>score</code> (must join first).</li>
+        <li>
+          Penalty kicks: upload Excel via workspace, <code>join</code> with
+          <code>gameType: penalty-kicks</code>, click a direction dot →
+          <code>penalty-kick</code>.
+        </li>
         <li>Leaderboard shows <code>snapshot</code> on connect and after each flush (~250ms).</li>
       </ol>
       <p>
@@ -372,7 +536,11 @@
         <strong>Game → server:</strong>
         <code>join</code>,
         <code>score</code>,
+        <code>penalty-kick</code>,
         <code>leave</code>
+        &nbsp;|&nbsp;
+        <strong>Penalty ← server:</strong>
+        <code>penalty-kick.result</code>
       </p>
       <p>
         Scores persist to <code>player_scores</code> + <code>score_events</code> (Postgres)
@@ -391,6 +559,7 @@
       let gameEventCount = 0;
       let lbEventCount = 0;
       let currentUserId = null;
+      let penaltyMatchJoined = false;
 
       const savedHttp = localStorage.getItem(STORAGE_HTTP);
       const savedJwt = localStorage.getItem(STORAGE_JWT);
@@ -575,6 +744,23 @@
           </table>`;
       }
 
+      function matchIdValue() {
+        return $("matchId").value.trim() || "match-penalty";
+      }
+
+      function setPenaltyWorkspaceEnabled(connected) {
+        $("penaltyJoin").disabled = !connected;
+        $("penaltyLeave").disabled = !connected || !penaltyMatchJoined;
+        document.querySelectorAll(".kick-dot").forEach((dot) => {
+          dot.disabled = !connected || !penaltyMatchJoined;
+        });
+        $("penaltyHint").textContent = !connected
+          ? "Connect game WS before joining or kicking."
+          : !penaltyMatchJoined
+            ? "Join the penalty match, then click a direction dot."
+            : "Click a dot to shoot (direction 0–3).";
+      }
+
       function setGameConnected(connected) {
         $("gameStatus").textContent = connected ? "connected" : "disconnected";
         $("gameStatus").classList.toggle("connected", connected);
@@ -583,6 +769,35 @@
         ["sendJoin", "sendScore", "sendLeave"].forEach((id) => {
           $(id).disabled = !connected;
         });
+        if (!connected) penaltyMatchJoined = false;
+        setPenaltyWorkspaceEnabled(connected);
+      }
+
+      function showWinModal(amount, meta) {
+        $("winModalAmount").textContent = String(amount);
+        $("winModalMeta").textContent = meta || "";
+        $("winModal").classList.remove("hidden");
+      }
+
+      function hideWinModal() {
+        $("winModal").classList.add("hidden");
+      }
+
+      function handlePenaltyKickResult(data) {
+        if (!data || data.type !== "penalty-kick.result") return;
+
+        if (data.won) {
+          showWinModal(
+            data.amount,
+            `Direction ${data.directionIndex} · step ${data.sequenceStepIndex + 1} · ${data.remainingSteps} kick(s) left`,
+          );
+        } else {
+          log("gameEvents", "in game", "← miss", {
+            directionIndex: data.directionIndex,
+            amount: data.amount,
+            remainingSteps: data.remainingSteps,
+          });
+        }
       }
 
       function setLbConnected(connected) {
@@ -615,6 +830,7 @@
           }
           const type =
             data && typeof data === "object" && data.type ? data.type : "message";
+          handlePenaltyKickResult(data);
           log("gameEvents", "in game", `← ${type}`, data);
         };
 

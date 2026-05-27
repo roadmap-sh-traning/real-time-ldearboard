@@ -119,9 +119,6 @@ export class WsGameAdapter {
           matchId: msg.matchId,
           gameType: msg.gameType,
           directionIndex: msg.directionIndex,
-          won: msg.won,
-          scoreWon: msg.scoreWon,
-          stakeAmount: msg.stakeAmount,
         });
       case "leave":
         await this.commands.leaveMatch({

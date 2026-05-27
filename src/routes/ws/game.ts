@@ -7,6 +7,8 @@ import { DrizzlePlayerSessionRepository } from "../../feature/game/infrastructur
 import { WsGameAdapter } from "../../feature/game/infrastructure/inbound/websocket/ws-game.adapter";
 import { WalletService } from "../../feature/wallet/application/services/wallet.service";
 import { DrizzleWalletLedgerRepository } from "../../feature/wallet/infrastructure/outbound/drizzle-wallet-ledger.repository";
+import { PenaltyKickPrizeSequenceService } from "../../feature/game/application/services/penalty-kick-prize-sequence.service";
+import { DrizzlePrizeSequenceRepository } from "../../feature/game/infrastructure/outbound/drizzle-prize-sequence.repository";
 
 export default async function gameWsRoutes(fs: AppInstance) {
   const players = new DrizzlePlayerRepository(fs.db);
@@ -15,12 +17,16 @@ export default async function gameWsRoutes(fs: AppInstance) {
   const sessions = new DrizzlePlayerSessionRepository(fs.db);
 
   const wallets = new WalletService(new DrizzleWalletLedgerRepository(fs.db));
+  const prizeSequences = new PenaltyKickPrizeSequenceService(
+    new DrizzlePrizeSequenceRepository(fs.db),
+  );
   const service = new GameService(
     players,
     matches,
     scoreEvents,
     fs.gameEvents,
     wallets,
+    prizeSequences,
   );
   const adapter = new WsGameAdapter(service, sessions, fs.redis);
 

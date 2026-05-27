@@ -159,6 +159,50 @@ export const walletSagas = pgTable(
   (t) => [index("idx_wallet_sagas_user_id_status").on(t.userId, t.status)],
 );
 
+export const gamePrizeSequences = pgTable(
+  "game_prize_sequences",
+  {
+    id: text("id").primaryKey(),
+    gameType: text("game_type").notNull(),
+    isActive: integer("is_active").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_game_prize_sequences_game_type_active").on(t.gameType, t.isActive)],
+);
+
+export const gamePrizeSequenceSteps = pgTable(
+  "game_prize_sequence_steps",
+  {
+    id: serial("id").primaryKey(),
+    sequenceId: text("sequence_id")
+      .references(() => gamePrizeSequences.id)
+      .notNull(),
+    stepIndex: integer("step_index").notNull(),
+    won: integer("won").notNull(),
+    prizeAmount: integer("prize_amount").notNull().default(0),
+    stakeAmount: integer("stake_amount").notNull().default(0),
+  },
+  (t) => [
+    index("idx_game_prize_sequence_steps_sequence_id").on(t.sequenceId, t.stepIndex),
+  ],
+);
+
+export const penaltyKickProgress = pgTable(
+  "penalty_kick_progress",
+  {
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    matchId: text("match_id").notNull(),
+    sequenceId: text("sequence_id")
+      .references(() => gamePrizeSequences.id)
+      .notNull(),
+    nextStepIndex: integer("next_step_index").notNull().default(0),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.matchId] })],
+);
+
 export const leaderboardPeriodScores = pgTable('leaderboard_period_scores', {
   periodType: text('period_type').notNull(),
   periodKey: text('period_key').notNull(),

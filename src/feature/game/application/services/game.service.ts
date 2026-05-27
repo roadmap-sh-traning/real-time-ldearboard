@@ -12,6 +12,7 @@ import {
   SubmitScoreCommand,
 } from "./game-handler-registry";
 import { WalletService } from "../../../wallet/application/services/wallet.service";
+import { PenaltyKickPrizeSequenceService } from "./penalty-kick-prize-sequence.service";
 import { createDefaultGameHandlers } from "./default-game-handlers";
 
 export class GamesService implements GameCommandPort {
@@ -41,6 +42,7 @@ export class GameService extends GamesService {
     scoreEvents: ScoreEventRepository,
     events: EventPublisher,
     wallets: WalletService,
+    prizeSequences: PenaltyKickPrizeSequenceService,
   ) {
     super(
       new GameHandlerRegistry(
@@ -50,6 +52,7 @@ export class GameService extends GamesService {
           scoreEvents,
           events,
           wallets,
+          prizeSequences,
         ),
       ),
     );
