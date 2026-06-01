@@ -37,4 +37,4 @@ COPY drizzle.config.ts ./
 
 EXPOSE 3000
 
-CMD ["npx", "fastify", "start", "-l", "info", "-p", "3000", "dist/app.js"]
+CMD ["npx", "fastify", "start", "-l", "info", "-a", "0.0.0.0", "-p", "3000", "dist/app.js"]

@@ -8,7 +8,7 @@ dockerfilePath = "Dockerfile"
 [deploy]
 # Uses compiled migrator (drizzle-kit is dev-only and not in the prod image).
 preDeployCommand = ["node dist/scripts/migrate.js"]
-startCommand = "npx fastify start -l info -p ${PORT:-3000} dist/app.js"
+startCommand = "npx fastify start -l info -a 0.0.0.0 -p ${PORT:-3000} dist/app.js"
 healthcheckPath = "/status"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
