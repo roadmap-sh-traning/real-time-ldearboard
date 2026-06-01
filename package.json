@@ -19,9 +19,10 @@
     "dbml": "tsx ./src/dbml.ts",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:migrate:prod": "node dist/scripts/migrate.js",
     "railway:link": "railway link",
     "railway:status": "railway status",
-    "railway:migrate": "railway run npm run db:migrate",
+    "railway:migrate": "railway run npm run db:migrate:prod",
     "railway:logs": "railway logs",
     "railway:deploy": "railway up"
   },

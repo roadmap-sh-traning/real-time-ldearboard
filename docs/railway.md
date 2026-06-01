@@ -22,7 +22,8 @@ Railway writes `.railway/` locally (git-ignored). After linking, CLI commands ru
 |---------|---------|
 | `npm run railway:link` | Link this folder to a Railway project/service |
 | `npm run railway:status` | Show linked project and service |
-| `npm run railway:migrate` | Run Drizzle migrations using Railway `DATABASE_URL` |
+| `npm run railway:migrate` | Run migrations in Railway (`node dist/scripts/migrate.js`) |
+| `npm run db:migrate:prod` | Same migrator locally (run `npm run build:ts` first) |
 | `npm run railway:logs` | Tail deployment logs |
 | `npm run railway:deploy` | Deploy current directory (`railway up`) |
 
@@ -56,7 +57,7 @@ DATABASE_PRIVATE_URL=${{Postgres.DATABASE_URL}}
 `railway.toml` in the repo root defines:
 
 - Docker build via `Dockerfile`
-- `preDeployCommand`: `["npm run db:migrate"]` (one command string only)
+- `preDeployCommand`: `["node dist/scripts/migrate.js"]` (production migrator; `drizzle-kit` is not in the Docker image)
 - Health check: `GET /status`
 - Start command uses Railway `PORT`
 
