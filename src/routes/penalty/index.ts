@@ -4,28 +4,28 @@ import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
 import { AppInstance } from "../../global";
 
+/**
+ * Loaded by @fastify/autoload with prefix `/penalty` (from the folder name).
+ * Route paths here must be relative to that prefix, not `/penalty/...` again.
+ */
 export default async function penaltyClientRoutes(fs: AppInstance) {
   const root = join(process.cwd(), "public", "penalty");
   const indexPath = join(root, "index.html");
 
   if (!existsSync(indexPath)) {
     fs.log.warn(
-      "Penalty client not built — run: cd client && npm install && npm run build",
+      "Penalty client not built — run: npm run client:build (from repo root)",
     );
   }
 
   await fs.register(fastifyStatic, {
     root,
-    prefix: "/penalty/",
+    prefix: "/",
     decorateReply: false,
     index: false,
   });
 
-  fs.get("/penalty", (_request, reply) => {
-    return reply.redirect("/penalty/");
-  });
-
-  fs.get("/penalty/", async (_request, reply) => {
+  fs.get("/", async (_request, reply) => {
     if (!existsSync(indexPath)) {
       return reply.status(503).send({
         message:
