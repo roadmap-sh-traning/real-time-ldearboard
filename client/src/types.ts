@@ -60,6 +60,23 @@ export interface WalletCreditResponse {
   reference: string;
 }
 
+export interface WalletBalances {
+  userId: number;
+  gameType: string;
+  mainBalance: number;
+  gameBalance: number;
+}
+
+export interface WalletTransferResponse {
+  userId: number;
+  gameType: string;
+  amount: number;
+  direction: "main-to-game" | "game-to-main";
+  mainBalance: number;
+  gameBalance: number;
+  reference: string;
+}
+
 export interface PrizeSequenceInfo {
   sequenceId: string;
   gameType: string;

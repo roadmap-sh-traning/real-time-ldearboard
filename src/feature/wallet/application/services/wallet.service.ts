@@ -24,6 +24,17 @@ export class WalletService {
     await this.ledger.creditMainWallet(input);
   }
 
+  async transferWallet(input: {
+    userId: PlayerId;
+    gameType: GameType;
+    amount: number;
+    direction: "main-to-game" | "game-to-main";
+    reference: string;
+    sagaId?: string;
+  }): Promise<WalletBalanceSnapshot> {
+    return this.transfer(input);
+  }
+
   async transferToGameWallet(input: {
     userId: PlayerId;
     gameType: GameType;
@@ -31,7 +42,7 @@ export class WalletService {
     reference: string;
     sagaId?: string;
   }): Promise<WalletBalanceSnapshot> {
-    return this.transfer({
+    return this.transferWallet({
       ...input,
       direction: "main-to-game",
     });
@@ -44,7 +55,7 @@ export class WalletService {
     reference: string;
     sagaId?: string;
   }): Promise<WalletBalanceSnapshot> {
-    return this.transfer({
+    return this.transferWallet({
       ...input,
       direction: "game-to-main",
     });

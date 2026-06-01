@@ -33,21 +33,44 @@
 
         <section class="panel" id="wallet-panel">
           <h2>Wallet</h2>
-          <p class="muted">Credit main balance (coins) to a user.</p>
+          <p id="wallet-balances" class="status">Login to view balances</p>
+          <div class="row">
+            <button type="button" id="btn-refresh-balances" class="btn" disabled>
+              Refresh balances
+            </button>
+          </div>
           <label class="field">
-            <span>User ID</span>
+            <span>Transfer amount</span>
+            <input
+              id="transfer-amount"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="50"
+            />
+          </label>
+          <div class="row">
+            <button type="button" id="btn-to-game" class="btn secondary" disabled>
+              To game wallet
+            </button>
+            <button type="button" id="btn-to-main" class="btn" disabled>
+              To main wallet
+            </button>
+          </div>
+          <p id="transfer-status" class="status"></p>
+          <p class="muted" style="margin: 0.75rem 0 0.5rem">
+            Penalty kicks debit losses from the game wallet — transfer before playing
+          </p>
+          <label class="field">
+            <span>Credit user ID (admin)</span>
             <input id="credit-user-id" type="number" min="1" step="1" placeholder="Your user id" />
           </label>
           <label class="field">
-            <span>Amount</span>
+            <span>Credit amount</span>
             <input id="credit-amount" type="number" min="1" step="1" placeholder="100" />
           </label>
-          <label class="field">
-            <span>Reference (optional)</span>
-            <input id="credit-reference" type="text" placeholder="manual-credit" />
-          </label>
           <button type="button" id="btn-credit" class="btn secondary" disabled>
-            Credit balance
+            Credit main balance
           </button>
           <p id="credit-status" class="status"></p>
         </section>

@@ -2,7 +2,9 @@ import type {
   AuthTokens,
   PrizeSequenceInfo,
   UploadSequenceResponse,
+  WalletBalances,
   WalletCreditResponse,
+  WalletTransferResponse,
 } from "./types";
 
 const TOKEN_KEY = "penalty-access-token";
@@ -70,6 +72,52 @@ export async function register(
   const data = await parseJson<AuthTokens>(res);
   setStoredToken(data.accessToken);
   return data;
+}
+
+export async function fetchWalletBalances(
+  gameType = "penalty-kicks",
+): Promise<WalletBalances> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const res = await fetch(
+    `/api/wallet/balances?gameType=${encodeURIComponent(gameType)}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  return parseJson<WalletBalances>(res);
+}
+
+export async function transferWallet(input: {
+  amount: number;
+  direction: "main-to-game" | "game-to-main";
+  gameType?: string;
+  reference?: string;
+  /** Defaults to the logged-in user from the JWT. */
+  userId?: number;
+}): Promise<WalletTransferResponse> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const userId = input.userId ?? getUserIdFromToken();
+  if (userId === null) throw new Error("Login required");
+
+  const res = await fetch("/api/wallet/transfer", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      amount: input.amount,
+      direction: input.direction,
+      gameType: input.gameType ?? "penalty-kicks",
+      ...(input.reference ? { reference: input.reference } : {}),
+    }),
+  });
+  return parseJson<WalletTransferResponse>(res);
 }
 
 export async function creditWallet(input: {

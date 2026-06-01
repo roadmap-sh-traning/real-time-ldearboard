@@ -1,11 +1,13 @@
 import {
   creditWallet,
   fetchActivePrizeSequence,
+  fetchWalletBalances,
   generatePrizeSequence,
   getStoredToken,
   getUserIdFromToken,
   login,
   register,
+  transferWallet,
   uploadPrizeSequence,
 } from "./api";
 import { GameSocket, LeaderboardSocket } from "./ws";
@@ -40,6 +42,34 @@ function setCreditStatus(message: string, isError = false): void {
   el.textContent = message;
   el.classList.toggle("error", isError);
   el.classList.toggle("ok", !isError && message.length > 0);
+}
+
+function setTransferStatus(message: string, isError = false): void {
+  const el = $("transfer-status");
+  el.textContent = message;
+  el.classList.toggle("error", isError);
+  el.classList.toggle("ok", !isError && message.length > 0);
+}
+
+async function loadWalletBalances(): Promise<void> {
+  const token = getStoredToken();
+  if (!token) {
+    $("wallet-balances").textContent = "Login to view balances";
+    return;
+  }
+
+  try {
+    const balances = await fetchWalletBalances();
+    updateBalances(balances.mainBalance, balances.gameBalance);
+    $("wallet-balances").textContent = `Main: ${balances.mainBalance} · Game: ${balances.gameBalance}`;
+    setTransferStatus("");
+  } catch (e) {
+    $("wallet-balances").textContent = "Failed to load balances";
+    setTransferStatus(
+      e instanceof Error ? e.message : "Failed to load balances",
+      true,
+    );
+  }
 }
 
 function syncCreditUserId(): void {
@@ -181,6 +211,9 @@ function updatePlayControls(): void {
   $button("btn-refresh-sequence").disabled = !token;
   $button("btn-play").disabled = !token || !hasSequence;
   $button("btn-credit").disabled = !token;
+  $button("btn-to-game").disabled = !token;
+  $button("btn-to-main").disabled = !token;
+  $button("btn-refresh-balances").disabled = !token;
   if (token) syncCreditUserId();
 }
 
@@ -311,6 +344,7 @@ async function init(): Promise<void> {
       await login($input("email").value.trim(), $input("password").value);
       setAuthStatus("Logged in");
       syncCreditUserId();
+      await loadWalletBalances();
       await loadLinkedSequence();
       updatePlayControls();
       connectLeaderboard();
@@ -329,6 +363,7 @@ async function init(): Promise<void> {
       );
       setAuthStatus("Registered");
       syncCreditUserId();
+      await loadWalletBalances();
       await loadLinkedSequence();
       updatePlayControls();
       connectLeaderboard();
@@ -336,6 +371,48 @@ async function init(): Promise<void> {
       setAuthStatus(e instanceof Error ? e.message : "Register failed", true);
     }
   });
+
+  const doTransfer = async (direction: "main-to-game" | "game-to-main") => {
+    if (!getStoredToken()) {
+      setTransferStatus("Login required", true);
+      return;
+    }
+
+    const amount = Number.parseInt($input("transfer-amount").value, 10);
+    if (!Number.isInteger(amount) || amount < 1) {
+      setTransferStatus("Enter a positive transfer amount", true);
+      return;
+    }
+
+    const btnId = direction === "main-to-game" ? "btn-to-game" : "btn-to-main";
+    $button(btnId).disabled = true;
+    setTransferStatus("Transferring…");
+    try {
+      const result = await transferWallet({
+        amount,
+        direction,
+        gameType: "penalty-kicks",
+      });
+      updateBalances(result.mainBalance, result.gameBalance);
+      $("wallet-balances").textContent = `Main: ${result.mainBalance} · Game: ${result.gameBalance}`;
+      setTransferStatus(
+        direction === "main-to-game"
+          ? `Moved ${amount} to game wallet`
+          : `Moved ${amount} to main wallet`,
+      );
+    } catch (e) {
+      setTransferStatus(
+        e instanceof Error ? e.message : "Transfer failed",
+        true,
+      );
+    } finally {
+      updatePlayControls();
+    }
+  };
+
+  $("btn-to-game").addEventListener("click", () => void doTransfer("main-to-game"));
+  $("btn-to-main").addEventListener("click", () => void doTransfer("game-to-main"));
+  $("btn-refresh-balances").addEventListener("click", () => void loadWalletBalances());
 
   $("btn-refresh-sequence").addEventListener("click", () => void loadLinkedSequence());
 
@@ -401,10 +478,7 @@ async function init(): Promise<void> {
       });
       const selfId = getUserIdFromToken();
       if (selfId === result.userId) {
-        const gameHud = $("hud-game").textContent;
-        const gameBal =
-          gameHud === "—" ? 0 : Number.parseInt(gameHud ?? "", 10) || 0;
-        updateBalances(result.mainBalance, gameBal);
+        await loadWalletBalances();
       }
       setCreditStatus(
         `Credited ${result.amount} → main balance ${result.mainBalance}`,
@@ -419,6 +493,7 @@ async function init(): Promise<void> {
   if (getStoredToken()) {
     setAuthStatus("Session restored — start a match when ready");
     syncCreditUserId();
+    void loadWalletBalances();
     void loadLinkedSequence();
     updatePlayControls();
     connectLeaderboard();
