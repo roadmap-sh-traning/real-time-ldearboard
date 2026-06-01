@@ -9,6 +9,18 @@ This project is a Fastify + WebSocket backend with a PixiJS frontend for a real-
 - **Wallet integration**: wins credit the main wallet; losses debit the game wallet using a ledger-backed wallet service.
 - **Live leaderboard**: a `/ws/leaderboard` WebSocket pushes snapshots so the sidebar leaderboard always stays up to date.
 
+### Railway (hosted deploy)
+
+See [docs/railway.md](docs/railway.md) for linking the repo with the CLI and running migrations.
+
+Quick start:
+
+```bash
+npm install -g @railway/cli
+npm run railway:link
+npm run railway:migrate
+```
+
 ### Running the backend (API + WebSockets)
 
 - `npm install`

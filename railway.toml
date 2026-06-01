@@ -1,0 +1,14 @@
+# Railway config-as-code for the app service.
+# Docs: https://docs.railway.com/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+preDeployCommand = ["npm", "run", "db:migrate"]
+startCommand = "npx fastify start -l info -p ${PORT:-3000} dist/app.js"
+healthcheckPath = "/status"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

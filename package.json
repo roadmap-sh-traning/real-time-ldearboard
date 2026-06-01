@@ -18,7 +18,12 @@
     "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
     "dbml": "tsx ./src/dbml.ts",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts"
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "railway:link": "railway link",
+    "railway:status": "railway status",
+    "railway:migrate": "railway run npm run db:migrate",
+    "railway:logs": "railway logs",
+    "railway:deploy": "railway up"
   },
   "keywords": [],
   "author": "",
