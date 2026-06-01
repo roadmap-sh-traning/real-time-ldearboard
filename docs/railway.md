@@ -56,7 +56,7 @@ DATABASE_PRIVATE_URL=${{Postgres.DATABASE_URL}}
 `railway.toml` in the repo root defines:
 
 - Docker build via `Dockerfile`
-- `preDeployCommand`: `npm run db:migrate`
+- `preDeployCommand`: `["npm run db:migrate"]` (one command string only)
 - Health check: `GET /status`
 - Start command uses Railway `PORT`
 

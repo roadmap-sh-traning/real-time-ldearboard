@@ -6,7 +6,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-preDeployCommand = ["npm", "run", "db:migrate"]
+# Railway allows a single command string in this array.
+preDeployCommand = ["npm run db:migrate"]
 startCommand = "npx fastify start -l info -p ${PORT:-3000} dist/app.js"
 healthcheckPath = "/status"
 healthcheckTimeout = 300
