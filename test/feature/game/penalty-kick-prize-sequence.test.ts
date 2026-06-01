@@ -38,6 +38,14 @@ class InMemoryPrizeSequenceRepository implements PrizeSequenceRepository {
     this.sequences.set(sequence.id, sequence);
   }
 
+  async activateSequence(sequenceId: string): Promise<void> {
+    const sequence = this.sequences.get(sequenceId);
+    if (!sequence) {
+      throw new Error(`Prize sequence ${sequenceId} not found`);
+    }
+    this.activeSequence = sequence;
+  }
+
   async getProgress(input: { userId: number; matchId: string }) {
     return this.progress.get(`${input.userId}:${input.matchId}`);
   }

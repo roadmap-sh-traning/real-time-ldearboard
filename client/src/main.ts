@@ -1,4 +1,13 @@
-import { login, register, uploadPrizeSequence, getStoredToken } from "./api";
+import {
+  creditWallet,
+  fetchActivePrizeSequence,
+  generatePrizeSequence,
+  getStoredToken,
+  getUserIdFromToken,
+  login,
+  register,
+  uploadPrizeSequence,
+} from "./api";
 import { GameSocket, LeaderboardSocket } from "./ws";
 import { PenaltyScene } from "./game/PenaltyScene";
 import type { GameServerEvent, LeaderboardSnapshot, PenaltyKickResult } from "./types";
@@ -24,6 +33,20 @@ function setAuthStatus(message: string, isError = false): void {
   const el = $("auth-status");
   el.textContent = message;
   el.classList.toggle("error", isError);
+}
+
+function setCreditStatus(message: string, isError = false): void {
+  const el = $("credit-status");
+  el.textContent = message;
+  el.classList.toggle("error", isError);
+  el.classList.toggle("ok", !isError && message.length > 0);
+}
+
+function syncCreditUserId(): void {
+  const id = getUserIdFromToken();
+  if (id !== null && !$input("credit-user-id").value.trim()) {
+    $input("credit-user-id").value = String(id);
+  }
 }
 
 function setHudStatus(text: string, live = false): void {
@@ -103,10 +126,62 @@ function currentSequenceId(): string {
   return $input("sequence-id").value.trim();
 }
 
+function setSequenceStatus(message: string, isError = false): void {
+  const el = $("sequence-status");
+  el.textContent = message;
+  el.classList.toggle("error", isError);
+  el.classList.toggle("ok", !isError && message.length > 0);
+}
+
+function applyLinkedSequence(
+  sequenceIdValue: string,
+  stepCount: number,
+  isActive = true,
+): void {
+  sequenceId = sequenceIdValue;
+  $input("sequence-id").value = sequenceIdValue;
+  localStorage.setItem("penalty-sequence-id", sequenceIdValue);
+  setSequenceStatus(
+    isActive
+      ? `Linked to game: ${stepCount} kicks`
+      : `Loaded ${stepCount} kicks (not active)`,
+  );
+  $("sequence-id-display").textContent = `ID: ${sequenceIdValue}`;
+}
+
+async function loadLinkedSequence(): Promise<void> {
+  const token = getStoredToken();
+  if (!token) {
+    setSequenceStatus("Login to load the linked sequence");
+    return;
+  }
+
+  try {
+    const data = await fetchActivePrizeSequence();
+    applyLinkedSequence(
+      data.sequenceId,
+      data.stepCount,
+      data.isActive !== false,
+    );
+    updatePlayControls();
+  } catch (e) {
+    setSequenceStatus(
+      e instanceof Error ? e.message : "Failed to load linked sequence",
+      true,
+    );
+    $("sequence-id-display").textContent = "";
+  }
+}
+
 function updatePlayControls(): void {
   const token = getStoredToken();
+  const hasSequence = Boolean(currentSequenceId());
   $button("btn-upload").disabled = !token;
-  $button("btn-play").disabled = !token || !currentSequenceId();
+  $button("btn-generate-sequence").disabled = !token;
+  $button("btn-refresh-sequence").disabled = !token;
+  $button("btn-play").disabled = !token || !hasSequence;
+  $button("btn-credit").disabled = !token;
+  if (token) syncCreditUserId();
 }
 
 function onGameEvent(event: GameServerEvent): void {
@@ -182,9 +257,8 @@ async function startMatch(): Promise<void> {
     return;
   }
 
-  sequenceId = currentSequenceId();
-  if (!sequenceId) {
-    setAuthStatus("Upload or paste a sequence ID", true);
+  if (!currentSequenceId()) {
+    setSequenceStatus("Load a linked sequence first", true);
     return;
   }
 
@@ -195,7 +269,7 @@ async function startMatch(): Promise<void> {
   $("hud-match").textContent = matchId;
 
   const joinMatch = (): void => {
-    gameSocket.joinPenaltyMatch(matchId, sequenceId);
+    gameSocket.joinPenaltyMatch(matchId);
     setHudStatus("Joining match…", true);
   };
 
@@ -217,9 +291,6 @@ async function startMatch(): Promise<void> {
 async function init(): Promise<void> {
   showApp();
 
-  const savedSequence = localStorage.getItem("penalty-sequence-id");
-  if (savedSequence) $input("sequence-id").value = savedSequence;
-
   scene = new PenaltyScene($("pixi-host"), (directionIndex) => {
     if (!inMatch || !matchId) return;
     try {
@@ -239,6 +310,8 @@ async function init(): Promise<void> {
     try {
       await login($input("email").value.trim(), $input("password").value);
       setAuthStatus("Logged in");
+      syncCreditUserId();
+      await loadLinkedSequence();
       updatePlayControls();
       connectLeaderboard();
     } catch (e) {
@@ -255,6 +328,8 @@ async function init(): Promise<void> {
         $input("password").value,
       );
       setAuthStatus("Registered");
+      syncCreditUserId();
+      await loadLinkedSequence();
       updatePlayControls();
       connectLeaderboard();
     } catch (e) {
@@ -262,26 +337,89 @@ async function init(): Promise<void> {
     }
   });
 
+  $("btn-refresh-sequence").addEventListener("click", () => void loadLinkedSequence());
+
+  $("btn-generate-sequence").addEventListener("click", async () => {
+    const stepCount = Number.parseInt($input("generate-step-count").value, 10);
+    if (!Number.isInteger(stepCount) || stepCount < 1) {
+      setSequenceStatus("Enter a valid kick count (1–500)", true);
+      return;
+    }
+    $button("btn-generate-sequence").disabled = true;
+    setSequenceStatus("Generating…");
+    try {
+      const data = await generatePrizeSequence({ stepCount, activate: true });
+      applyLinkedSequence(data.sequenceId, data.stepCount, true);
+    } catch (e) {
+      setSequenceStatus(
+        e instanceof Error ? e.message : "Generate failed",
+        true,
+      );
+    } finally {
+      updatePlayControls();
+    }
+  });
+
   $("btn-upload").addEventListener("click", async () => {
     const file = $input("prize-file").files?.[0];
     if (!file) return;
+    $button("btn-upload").disabled = true;
+    setSequenceStatus("Uploading…");
     try {
       const data = await uploadPrizeSequence(file);
-      $input("sequence-id").value = data.sequenceId;
-      localStorage.setItem("penalty-sequence-id", data.sequenceId);
-      setAuthStatus(`Uploaded ${data.stepCount} steps`);
-      updatePlayControls();
+      applyLinkedSequence(data.sequenceId, data.stepCount, data.isActive !== false);
     } catch (e) {
-      setAuthStatus(e instanceof Error ? e.message : "Upload failed", true);
+      setSequenceStatus(e instanceof Error ? e.message : "Upload failed", true);
+    } finally {
+      updatePlayControls();
     }
   });
 
   $("btn-play").addEventListener("click", () => void startMatch());
 
-  $input("sequence-id").addEventListener("input", updatePlayControls);
+  $("btn-credit").addEventListener("click", async () => {
+    const userId = Number.parseInt($input("credit-user-id").value, 10);
+    const amount = Number.parseInt($input("credit-amount").value, 10);
+    const reference = $input("credit-reference").value.trim();
+
+    if (!Number.isInteger(userId) || userId < 1) {
+      setCreditStatus("Enter a valid user ID", true);
+      return;
+    }
+    if (!Number.isInteger(amount) || amount < 1) {
+      setCreditStatus("Enter a positive amount", true);
+      return;
+    }
+
+    $button("btn-credit").disabled = true;
+    setCreditStatus("Crediting…");
+    try {
+      const result = await creditWallet({
+        userId,
+        amount,
+        ...(reference ? { reference } : {}),
+      });
+      const selfId = getUserIdFromToken();
+      if (selfId === result.userId) {
+        const gameHud = $("hud-game").textContent;
+        const gameBal =
+          gameHud === "—" ? 0 : Number.parseInt(gameHud ?? "", 10) || 0;
+        updateBalances(result.mainBalance, gameBal);
+      }
+      setCreditStatus(
+        `Credited ${result.amount} → main balance ${result.mainBalance}`,
+      );
+    } catch (e) {
+      setCreditStatus(e instanceof Error ? e.message : "Credit failed", true);
+    } finally {
+      updatePlayControls();
+    }
+  });
 
   if (getStoredToken()) {
-    setAuthStatus("Session restored — upload sequence or start match");
+    setAuthStatus("Session restored — start a match when ready");
+    syncCreditUserId();
+    void loadLinkedSequence();
     updatePlayControls();
     connectLeaderboard();
   } else {

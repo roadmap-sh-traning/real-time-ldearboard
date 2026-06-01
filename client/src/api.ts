@@ -1,4 +1,9 @@
-import type { AuthTokens, UploadSequenceResponse } from "./types";
+import type {
+  AuthTokens,
+  PrizeSequenceInfo,
+  UploadSequenceResponse,
+  WalletCreditResponse,
+} from "./types";
 
 const TOKEN_KEY = "penalty-access-token";
 
@@ -12,6 +17,23 @@ export function setStoredToken(token: string): void {
 
 export function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+/** Numeric user id from JWT `sub` (set after login/register). */
+export function getUserIdFromToken(): number | null {
+  const token = getStoredToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as {
+      sub?: number | string;
+    };
+    const id = payload.sub;
+    if (id === undefined || id === null) return null;
+    const n = typeof id === "number" ? id : Number(id);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
 }
 
 async function parseJson<T>(res: Response): Promise<T> {
@@ -50,17 +72,84 @@ export async function register(
   return data;
 }
 
+export async function creditWallet(input: {
+  userId: number;
+  amount: number;
+  reference?: string;
+}): Promise<WalletCreditResponse> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const res = await fetch("/api/wallet/credit", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  return parseJson<WalletCreditResponse>(res);
+}
+
+export async function fetchActivePrizeSequence(): Promise<PrizeSequenceInfo> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const res = await fetch("/api/penalty-kicks/prize-sequence", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseJson<PrizeSequenceInfo>(res);
+}
+
+export async function generatePrizeSequence(input?: {
+  stepCount?: number;
+  activate?: boolean;
+}): Promise<PrizeSequenceInfo> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const res = await fetch("/api/penalty-kicks/prize-sequence/generate", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input ?? {}),
+  });
+  return parseJson<PrizeSequenceInfo>(res);
+}
+
+export async function activatePrizeSequence(
+  sequenceId: string,
+): Promise<PrizeSequenceInfo> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Login required");
+
+  const res = await fetch("/api/penalty-kicks/prize-sequence/active", {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ sequenceId }),
+  });
+  return parseJson<PrizeSequenceInfo>(res);
+}
+
 export async function uploadPrizeSequence(file: File): Promise<UploadSequenceResponse> {
   const token = getStoredToken();
   if (!token) throw new Error("Login required");
 
   const body = new FormData();
   body.append("file", file);
-  const res = await fetch("/api/penalty-kicks/prize-sequence", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body,
-  });
+  const res = await fetch(
+    "/api/penalty-kicks/prize-sequence?activate=true",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    },
+  );
   return parseJson<UploadSequenceResponse>(res);
 }
 

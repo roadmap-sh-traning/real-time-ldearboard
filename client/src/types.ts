@@ -53,10 +53,27 @@ export type GameServerEvent =
   | { type: "score.updated"; newScore: number }
   | { type: "WS_ERROR"; code: string; message?: string };
 
-export interface UploadSequenceResponse {
+export interface WalletCreditResponse {
+  userId: number;
+  amount: number;
+  mainBalance: number;
+  reference: string;
+}
+
+export interface PrizeSequenceInfo {
   sequenceId: string;
   gameType: string;
   stepCount: number;
+  isActive?: boolean;
+  steps?: Array<{
+    stepIndex: number;
+    won: boolean;
+    prizeAmount: number;
+    stakeAmount: number;
+  }>;
+}
+
+export interface UploadSequenceResponse extends PrizeSequenceInfo {
   steps: Array<{
     stepIndex: number;
     won: boolean;

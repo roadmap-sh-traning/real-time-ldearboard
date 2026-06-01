@@ -4,13 +4,13 @@
     "outDir": "dist",
     "sourceMap": true,
     "moduleResolution": "nodenext",
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@type/*": ["src/type/*"],
+      "@lib/*": ["src/lib/*"],
+      "@test/*": ["test/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/types/fastify.d.ts"],
-  "baseUrl": "./",
-  "paths": {
-    "@src/*": ["src/*"],
-    "@type/*": ["src/type/*"],
-    "@lib/*": ["src/lib/*"],
-    "@test/*": ["test/*"],
-  },
+  "include": ["src/**/*.ts", "src/types/fastify.d.ts"]
 }

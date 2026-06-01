@@ -35,12 +35,12 @@ export class GameSocket {
     this.ws.send(JSON.stringify(payload));
   }
 
-  joinPenaltyMatch(matchId: string, sequenceId: string): void {
+  joinPenaltyMatch(matchId: string, sequenceId?: string): void {
     this.send({
       type: "join",
       matchId,
       gameType: "penalty-kicks",
-      sequenceId,
+      ...(sequenceId?.trim() ? { sequenceId: sequenceId.trim() } : {}),
     });
   }
 

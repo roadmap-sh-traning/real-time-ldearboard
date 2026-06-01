@@ -1,3 +1,13 @@
+FROM node:22-alpine AS client-builder
+
+WORKDIR /app/client
+
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run sprites && npm run build
+
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -20,7 +30,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
-COPY public ./public
+COPY --from=client-builder /app/public/penalty ./public/penalty
+COPY public/ws-console.html ./public/ws-console.html
 COPY drizzle ./drizzle
 COPY drizzle.config.ts ./
 

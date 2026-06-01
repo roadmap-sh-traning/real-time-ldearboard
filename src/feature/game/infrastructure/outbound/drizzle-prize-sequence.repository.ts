@@ -70,6 +70,38 @@ export class DrizzlePrizeSequenceRepository implements PrizeSequenceRepository {
     });
   }
 
+  async activateSequence(
+    sequenceId: string,
+    gameType: GameType,
+  ): Promise<void> {
+    const [row] = await this.db
+      .select({ id: schema.gamePrizeSequences.id })
+      .from(schema.gamePrizeSequences)
+      .where(eq(schema.gamePrizeSequences.id, sequenceId))
+      .limit(1);
+
+    if (!row) {
+      throw new Error(`Prize sequence ${sequenceId} not found`);
+    }
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(schema.gamePrizeSequences)
+        .set({ isActive: 0 })
+        .where(
+          and(
+            eq(schema.gamePrizeSequences.gameType, gameType),
+            eq(schema.gamePrizeSequences.isActive, 1),
+          ),
+        );
+
+      await tx
+        .update(schema.gamePrizeSequences)
+        .set({ isActive: 1 })
+        .where(eq(schema.gamePrizeSequences.id, sequenceId));
+    });
+  }
+
   async replaceActiveSequence(sequence: PenaltyKickPrizeSequence): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx

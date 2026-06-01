@@ -14,6 +14,10 @@ export interface PrizeSequenceRepository {
   getActiveSequence(gameType: GameType): Promise<PenaltyKickPrizeSequence | undefined>;
   saveSequence(sequence: PenaltyKickPrizeSequence): Promise<void>;
   replaceActiveSequence(sequence: PenaltyKickPrizeSequence): Promise<void>;
+  activateSequence(
+    sequenceId: PrizeSequenceId,
+    gameType: GameType,
+  ): Promise<void>;
   getProgress(input: {
     userId: PlayerId;
     matchId: MatchId;

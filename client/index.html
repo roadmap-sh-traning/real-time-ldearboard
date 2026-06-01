@@ -31,22 +31,63 @@
           <p id="auth-status" class="status"></p>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="wallet-panel">
+          <h2>Wallet</h2>
+          <p class="muted">Credit main balance (coins) to a user.</p>
+          <label class="field">
+            <span>User ID</span>
+            <input id="credit-user-id" type="number" min="1" step="1" placeholder="Your user id" />
+          </label>
+          <label class="field">
+            <span>Amount</span>
+            <input id="credit-amount" type="number" min="1" step="1" placeholder="100" />
+          </label>
+          <label class="field">
+            <span>Reference (optional)</span>
+            <input id="credit-reference" type="text" placeholder="manual-credit" />
+          </label>
+          <button type="button" id="btn-credit" class="btn secondary" disabled>
+            Credit balance
+          </button>
+          <p id="credit-status" class="status"></p>
+        </section>
+
+        <section class="panel" id="sequence-panel">
           <h2>Prize sequence</h2>
+          <p id="sequence-status" class="status">Login to load the linked sequence</p>
+          <p id="sequence-id-display" class="muted"></p>
+          <div class="row">
+            <button type="button" id="btn-refresh-sequence" class="btn" disabled>
+              Refresh
+            </button>
+            <button type="button" id="btn-play" class="btn primary" disabled>
+              Start match
+            </button>
+          </div>
+          <label class="field">
+            <span>Generate new sequence (kicks)</span>
+            <input
+              id="generate-step-count"
+              type="number"
+              min="1"
+              max="500"
+              value="100"
+            />
+          </label>
+          <button type="button" id="btn-generate-sequence" class="btn secondary" disabled>
+            Generate and link
+          </button>
+          <p class="muted" style="margin: 0.75rem 0 0.5rem">
+            Optional: upload Excel to replace the active sequence
+          </p>
           <label class="field">
             <span>Excel (.xlsx)</span>
             <input id="prize-file" type="file" accept=".xlsx,.xls" />
           </label>
           <button type="button" id="btn-upload" class="btn secondary" disabled>
-            Upload sequence
+            Upload and link
           </button>
-          <label class="field">
-            <span>Sequence ID</span>
-            <input id="sequence-id" type="text" placeholder="From upload response" />
-          </label>
-          <button type="button" id="btn-play" class="btn primary" disabled>
-            Start match
-          </button>
+          <input id="sequence-id" type="hidden" />
         </section>
 
         <section class="panel leaderboard-panel">

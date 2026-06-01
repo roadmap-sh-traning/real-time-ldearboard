@@ -24,6 +24,7 @@ The game UI lives under `client/` and is served (in dev) via Vite.
 ```bash
 cd client
 npm install
+npm run sprites   # optional: regenerate pixel-art sprite sheets
 npm run dev
 ```
 
@@ -32,20 +33,23 @@ Then open `http://localhost:5173/penalty/` to play the game against your local A
 ### Gameplay flow
 
 1. **Login / register** in the left sidebar (the client stores a JWT and uses it for HTTP + WS).
-2. **Upload an Excel prize sequence** (`POST /api/penalty-kicks/prize-sequence` under the hood). The UI shows the returned `sequenceId`.
-3. **Start match**: the client opens `/ws/game`, then sends a `join` message with `matchId`, `gameType: "penalty-kicks"`, and the `sequenceId`.
-4. **Server initializes progress** for that sequence and publishes `player.joined` with `totalSteps` so the HUD shows remaining kicks.
-5. **Take kicks**: each click on a goal zone sends a `penalty-kick` message with `directionIndex` (0–3). The server:
+2. The server seeds a **default 100-kick sequence** on startup and links it to penalty-kicks. The client loads it after login (no upload required).
+3. **Start match**: the client opens `/ws/game` and sends `join` with `gameType: "penalty-kicks"`. `sequenceId` is optional; the active sequence is used if omitted.
+4. **Optional**: upload Excel to replace the active sequence (`POST /api/penalty-kicks/prize-sequence` activates it by default).
+5. **Server initializes progress** for that sequence and publishes `player.joined` with `totalSteps` so the HUD shows remaining kicks.
+6. **Take kicks**: each click on a goal zone sends a `penalty-kick` message with `directionIndex` (0–3). The server:
    - Uses the next prize-sequence step to decide win/loss and amount.
    - Credits or debits wallets accordingly.
    - Publishes a `penalty-kick.result` event with balances and remaining steps.
-6. **Leaderboard updates**: on wins, the server also emits `score.updated`; a Redis-backed leaderboard aggregates scores and pushes snapshots over `/ws/leaderboard`.
+7. **Leaderboard updates**: on wins, the server also emits `score.updated`; a Redis-backed leaderboard aggregates scores and pushes snapshots over `/ws/leaderboard`.
 
 ### Key endpoints and sockets
 
 - **HTTP**
   - `POST /api/penalty-kicks/prize-sequence` – upload Excel and create a prize sequence.
-  - `GET /api/penalty-kicks/prize-sequence?sequenceId=...` – inspect a sequence.
+  - `GET /api/penalty-kicks/prize-sequence` – active linked sequence (or `?sequenceId=...` to inspect one).
+  - `POST /api/penalty-kicks/prize-sequence/generate` – generate a big sequence (optional body: `{ "stepCount": 50 }`).
+  - `PUT /api/penalty-kicks/prize-sequence/active` – link a sequence: `{ "sequenceId": "..." }`.
   - `GET /penalty` – redirects to the built PixiJS client at `/penalty/` when built for production.
 - **WebSockets**
   - `GET /ws/game` – game messages (`join`, `penalty-kick`, `leave`) and events (`player.joined`, `penalty-kick.result`, `score.updated`).
@@ -53,6 +57,7 @@ Then open `http://localhost:5173/penalty/` to play the game against your local A
 
 ### Available scripts (root)
 
+- `npm run client:build` – build the PixiJS client into `public/penalty/` (required before Docker or production).
 - `npm run dev` – start Fastify in development (HTTP + WS, no frontend build).
 - `npm run build:ts` – compile the TypeScript backend.
 - `npm run test` – run the test suite.

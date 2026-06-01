@@ -115,14 +115,26 @@ body {
   color: var(--muted);
 }
 
+#sequence-panel .status {
+  margin-bottom: 0.25rem;
+}
+
 .status.error {
   color: var(--lose);
+}
+
+.status.ok {
+  color: var(--win);
 }
 
 .muted {
   color: var(--muted);
   font-size: 0.75rem;
   margin: 0 0 0.5rem;
+}
+
+.muted.error {
+  color: var(--lose);
 }
 
 .leaderboard-list {

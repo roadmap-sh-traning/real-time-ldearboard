@@ -73,6 +73,10 @@ class StubPrizeSequenceRepository implements PrizeSequenceRepository {
     Object.assign(this.sequence, sequence);
   }
 
+  async activateSequence() {
+    /* no-op */
+  }
+
   async getProgress(input: { userId: number; matchId: string }) {
     return this.progress.get(`${input.userId}:${input.matchId}`);
   }

@@ -46,14 +46,15 @@ export class PenaltyKicksGameHandler implements GameHandler {
     const updated = addPlayer(match, input.playerId);
     await this.matches.save(updated);
 
-    if (!input.sequenceId?.trim()) {
-      throw new Error("sequenceId is required for penalty-kicks");
-    }
+    const sequenceId = await this.prizeSequences.resolveSequenceIdForMatch(
+      input.sequenceId,
+      this.gameType,
+    );
 
     const sequence = await this.prizeSequences.initializeMatchProgress({
       userId: input.playerId,
       matchId: input.matchId,
-      sequenceId: input.sequenceId.trim(),
+      sequenceId,
     });
 
     this.events.publish({

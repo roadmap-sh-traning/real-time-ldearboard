@@ -165,6 +165,14 @@ class InMemoryPrizeSequenceRepository implements PrizeSequenceRepository {
     this.sequences.set(sequence.id, sequence);
   }
 
+  async activateSequence(sequenceId: string) {
+    const sequence = this.sequences.get(sequenceId);
+    if (!sequence) {
+      throw new Error(`Prize sequence ${sequenceId} not found`);
+    }
+    this.sequences.set(sequenceId, sequence);
+  }
+
   async getProgress(input: { userId: number; matchId: string }) {
     return this.progress.get(`${input.userId}:${input.matchId}`);
   }
@@ -211,19 +219,19 @@ function createPenaltyKickService() {
   return { service, players, eventPublisher, wallets, ledger };
 }
 
-test("penalty kick join requires sequenceId", async () => {
-  const { service } = createPenaltyKickService();
+test("penalty kick join uses active sequence when sequenceId is omitted", async () => {
+  const { service, eventPublisher } = createPenaltyKickService();
 
-  await assert.rejects(
-    () =>
-      service.joinMatch({
-        playerId: 7,
-        playerName: "alice@example.com",
-        matchId: "match-penalty",
-        gameType: "penalty-kicks",
-      }),
-    /sequenceId is required/,
-  );
+  await service.joinMatch({
+    playerId: 7,
+    playerName: "alice@example.com",
+    matchId: "match-penalty",
+    gameType: "penalty-kicks",
+  });
+
+  const joined = eventPublisher.events.find((e) => e.type === "player.joined");
+  assert.equal(joined?.sequenceId, defaultTestSequence.id);
+  assert.equal(joined?.totalSteps, defaultTestSequence.steps.length);
 });
 
 test("penalty kick win uses prize sequence and credits main wallet", async () => {

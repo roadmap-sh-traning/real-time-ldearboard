@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sprites": "node scripts/generate-sprites.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.8.1"
   },
   "devDependencies": {
+    "pngjs": "^7.0.0",
     "typescript": "~5.9.2",
     "vite": "^6.3.5"
   }
