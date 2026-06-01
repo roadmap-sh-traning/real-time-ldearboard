@@ -19,7 +19,15 @@ const healthCheckPlugin: FastifyPluginAsync = fp(
           await instance.db.execute(sql`SELECT 1`);
           return true;
         } catch (error) {
-          instance.log.error(error, "Database health check failed");
+          const err = error as Error & { code?: string };
+          instance.log.error(
+            {
+              err,
+              code: err.code,
+              message: err.message,
+            },
+            "Database health check failed",
+          );
           return false;
         }
       },
