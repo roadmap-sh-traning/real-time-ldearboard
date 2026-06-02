@@ -208,8 +208,11 @@ body {
 }
 
 .pixi-host {
-  flex: 1;
-  min-height: 400px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 70vh;
+  margin: 0 auto;
+  align-self: center;
   position: relative;
 }
 

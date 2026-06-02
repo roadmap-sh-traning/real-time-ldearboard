@@ -1,6 +1,7 @@
 import {
   Application,
   Assets,
+  Circle,
   Container,
   Graphics,
   Sprite,
@@ -12,12 +13,18 @@ import { SpriteAnimator } from "./SpriteAnimator";
 import {
   BALL_FRAME_SIZE,
   GOAL_BURST_SIZE,
-  KEEPER_FRAME_SIZE,
   SHOOTER_FRAME_SIZE,
   SPRITE_ASSETS,
 } from "./sprites";
 
-const ZONE_COLORS = [0x22c55e, 0x16a34a, 0x15803d, 0x22c55e];
+const GOAL_ASPECT = 472 / 184;
+
+const TARGET_POSITIONS = [
+  { x: 0.16, y: 0.3 },
+  { x: 0.16, y: 0.72 },
+  { x: 0.84, y: 0.3 },
+  { x: 0.84, y: 0.72 },
+];
 
 export type KickHandler = (directionIndex: number) => void;
 
@@ -74,8 +81,6 @@ export class PenaltyScene {
     this.pitch.anchor.set(0.5, 0);
     this.root.addChild(this.pitch);
 
-    // Real goal/net (cropped from the rendered ground art) sits in the goal
-    // rect; the faint Graphics frame on top reads as the box outline.
     this.goalImage = new Sprite(goalTex);
     this.root.addChild(this.goalImage);
     this.root.addChild(this.goalFrame);
@@ -90,7 +95,6 @@ export class PenaltyScene {
     this.ballAnimator.sprite.animationSpeed = 0.35;
     this.root.addChild(this.ballAnimator.sprite);
 
-    // Penalty taker in the foreground, viewed from behind.
     this.shooterAnimator = new SpriteAnimator(shooterSheet, "idle");
     this.shooterAnimator.sprite.animationSpeed = 0.1;
     this.root.addChild(this.shooterAnimator.sprite);
@@ -106,7 +110,7 @@ export class PenaltyScene {
   setInteractive(enabled: boolean): void {
     this.enabled = enabled && !this.kicking;
     for (const zone of this.zones) {
-      zone.alpha = this.enabled ? 1 : 0.45;
+      zone.alpha = this.enabled ? 1 : 0.8;
       zone.eventMode = this.enabled ? "static" : "none";
       zone.cursor = this.enabled ? "pointer" : "default";
     }
@@ -127,19 +131,21 @@ export class PenaltyScene {
     this.setInteractive(false);
     this.stopKeeperIdle();
 
+    const SHOOT_SPEED = 0.4;
+    const WINDUP_MS = 250;
+    const TRAVEL_MS = 300;
+    const DIVE_FRAMES = 8;
+
     if (this.shooterAnimator && this.shooterSheet) {
       this.shooterAnimator.play("shoot", this.shooterSheet, false);
-      this.shooterAnimator.sprite.animationSpeed = 0.3;
+      this.shooterAnimator.sprite.animationSpeed = SHOOT_SPEED;
     }
 
     const { width, height } = this.app.screen;
-    const goalY = height * 0.14;
-    const goalH = height * 0.2;
-    const goalW = width * 0.72;
-    const goalX = width * 0.14;
-    const zoneW = goalW / 4;
-    const targetX = goalX + zoneW * directionIndex + zoneW / 2;
-    const targetY = goalY + goalH * 0.55;
+    const { x: goalX, y: goalY, w: goalW, h: goalH } = this.goalRect();
+    const target = this.targetCenters(goalX, goalY, goalW, goalH)[directionIndex];
+    const targetX = target.x;
+    const targetY = target.y;
     const spotY = height * 0.78;
     const ball = this.ballAnimator.sprite;
     const keeper = this.keeperAnimator.sprite;
@@ -153,18 +159,21 @@ export class PenaltyScene {
         ? "dive_left"
         : "dive_right";
 
+    const keeperTargetX = won ? targetX + (diveLeft ? 55 : -55) : targetX;
+
+
+    await this.delay(WINDUP_MS);
+
+
     this.keeperAnimator.play(keeperAnim, this.keeperSheet, false);
-    this.keeperAnimator.sprite.animationSpeed = 0.28;
+    this.keeperAnimator.sprite.animationSpeed =
+      DIVE_FRAMES / ((TRAVEL_MS / 1000) * 60);
     this.ballAnimator.play("spin", this.ballSheet, true);
     this.ballAnimator.sprite.animationSpeed = 0.45;
 
-    const keeperTargetX = won
-      ? targetX + (diveLeft ? 55 : -55)
-      : targetX;
-
     await Promise.all([
-      this.tween(keeper.position, { x: keeperTargetX }, 280),
-      this.tween(ball.position, { x: targetX, y: targetY }, 320),
+      this.tween(keeper.position, { x: keeperTargetX }, TRAVEL_MS),
+      this.tween(ball.position, { x: targetX, y: targetY }, TRAVEL_MS),
     ]);
 
     ball.scale.set(won ? 1.15 : 0.92);
@@ -226,29 +235,55 @@ export class PenaltyScene {
         if (!this.enabled || this.kicking) return;
         this.onKick(idx);
       });
-      const label = new Text({
-        text: `${i}`,
-        style: {
-          fill: 0xffffff,
-          fontSize: 18,
-          fontWeight: "800",
-          align: "center",
-        },
-      });
-      label.anchor.set(0.5);
-      zone.addChild(label);
       this.root.addChild(zone);
       this.zones.push(zone);
     }
   }
 
+
+  private goalRect(): { x: number; y: number; w: number; h: number } {
+    const { width, height } = this.app!.screen;
+
+    let h = height * 0.34;
+    let w = h * GOAL_ASPECT;
+    const maxW = width * 0.78;
+    if (w > maxW) {
+      w = maxW;
+      h = w / GOAL_ASPECT;
+    }
+    return { x: (width - w) / 2, y: height * 0.1, w, h };
+  }
+
+  private targetCenters(
+    goalX: number,
+    goalY: number,
+    goalW: number,
+    goalH: number,
+  ): { x: number; y: number }[] {
+    return TARGET_POSITIONS.map((p) => ({
+      x: goalX + goalW * p.x,
+      y: goalY + goalH * p.y,
+    }));
+  }
+
+  private drawBullseye(g: Graphics, outerR: number): void {
+    const rings: { f: number; color: number }[] = [
+      { f: 1.0, color: 0xdc2626 },
+      { f: 0.78, color: 0xf8fafc },
+      { f: 0.56, color: 0xdc2626 },
+      { f: 0.34, color: 0xf8fafc },
+      { f: 0.16, color: 0xdc2626 },
+    ];
+    for (const ring of rings) {
+      g.circle(0, 0, outerR * ring.f).fill({ color: ring.color });
+    }
+    g.circle(0, 0, outerR).stroke({ width: 2, color: 0xffffff, alpha: 0.6 });
+  }
+
   private layout(): void {
     if (!this.app) return;
     const { width, height } = this.app.screen;
-    const goalW = width * 0.72;
-    const goalH = height * 0.2;
-    const goalX = width * 0.14;
-    const goalY = height * 0.14;
+    const { x: goalX, y: goalY, w: goalW, h: goalH } = this.goalRect();
     const zoneW = goalW / 4 - 6;
     const spotY = height * 0.78;
 
@@ -271,18 +306,17 @@ export class PenaltyScene {
       .stroke({ width: 2, color: 0xffffff, alpha: 0.25 });
     this.goalFrame.position.set(goalX, goalY);
 
+
+    const targets = this.targetCenters(goalX, goalY, goalW, goalH);
+    const targetR = Math.min(goalW * 0.09, goalH * 0.14);
     this.zones.forEach((zone, i) => {
       zone.clear();
-      zone
-        .roundRect(0, 0, zoneW, goalH - 14, 6)
-        .fill({ color: ZONE_COLORS[i], alpha: 0.55 });
-      zone.stroke({ width: 2, color: 0xffffff, alpha: 0.85 });
-      zone.position.set(goalX + 3 + i * (zoneW + 3), goalY + 7);
-      const label = zone.children[0] as Text;
-      label.position.set(zoneW / 2, (goalH - 14) / 2);
+      this.drawBullseye(zone, targetR);
+      zone.position.set(targets[i].x, targets[i].y);
+      zone.hitArea = new Circle(0, 0, targetR * 1.15);
     });
 
-    const keeperScale = Math.min(1.4, (goalW / 4) / (KEEPER_FRAME_SIZE * 0.9));
+    const keeperScale = Math.min(1.6, (goalH * 0.7) / 200);
     if (this.keeperAnimator) {
       this.keeperAnimator.sprite.scale.set(keeperScale);
       this.keeperAnimator.sprite.position.set(width / 2, goalY + goalH + 8);
@@ -296,7 +330,6 @@ export class PenaltyScene {
       }
     }
 
-    // Foreground penalty taker: feet near the bottom edge, ball just ahead.
     const shooterScale = Math.min(1.1, (height * 0.4) / SHOOTER_FRAME_SIZE);
     if (this.shooterAnimator) {
       this.shooterAnimator.sprite.scale.set(shooterScale);
@@ -311,7 +344,6 @@ export class PenaltyScene {
   }
 
   private stopKeeperIdle(): void {
-    /* idle loop is AnimatedSprite.loop on keeper */
   }
 
   private async playGoalBurst(x: number, y: number): Promise<void> {
