@@ -150,16 +150,12 @@ export class PenaltyScene {
     const ball = this.ballAnimator.sprite;
     const keeper = this.keeperAnimator.sprite;
 
-    const diveLeft = directionIndex < 2;
-    const keeperAnim = won
-      ? diveLeft
-        ? "dive_right"
-        : "dive_left"
-      : diveLeft
-        ? "dive_left"
-        : "dive_right";
-
-    const keeperTargetX = won ? targetX + (diveLeft ? 55 : -55) : targetX;
+    // The keeper always dives toward the ball's side (dive_left leans screen-left,
+    // dive_right screen-right). On a save he meets the ball; on a goal he's beaten
+    // to the corner — landing just short — rather than diving the wrong way.
+    const ballOnLeft = directionIndex < 2;
+    const keeperAnim = ballOnLeft ? "dive_left" : "dive_right";
+    const keeperTargetX = won ? targetX + (ballOnLeft ? 50 : -50) : targetX;
 
 
     await this.delay(WINDUP_MS);
