@@ -6,7 +6,11 @@ COPY client/package.json client/package-lock.json ./
 RUN npm ci
 
 COPY client/ ./
-RUN npm run sprites && npm run build
+# Sprites are committed to client/public/sprites (built locally via `npm run
+# sprites:penalty` from out-of-repo source art). Do NOT regenerate them here:
+# `npm run sprites` runs the old procedural placeholder generator and would
+# clobber the committed art. Vite copies client/public/ verbatim.
+RUN npm run build
 
 FROM node:22-alpine AS builder
 
