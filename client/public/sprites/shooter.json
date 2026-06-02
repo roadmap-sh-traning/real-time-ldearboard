@@ -1,0 +1,357 @@
+{
+  "frames": {
+    "idle_0.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "idle_1.png": {
+      "frame": {
+        "x": 150,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "idle_2.png": {
+      "frame": {
+        "x": 300,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "idle_3.png": {
+      "frame": {
+        "x": 450,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "idle_4.png": {
+      "frame": {
+        "x": 600,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "idle_5.png": {
+      "frame": {
+        "x": 750,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 150,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 150,
+        "h": 250
+      }
+    },
+    "shoot_0.png": {
+      "frame": {
+        "x": 0,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_1.png": {
+      "frame": {
+        "x": 350,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_2.png": {
+      "frame": {
+        "x": 700,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_3.png": {
+      "frame": {
+        "x": 1050,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_4.png": {
+      "frame": {
+        "x": 1400,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_5.png": {
+      "frame": {
+        "x": 1750,
+        "y": 250,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_6.png": {
+      "frame": {
+        "x": 0,
+        "y": 600,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_7.png": {
+      "frame": {
+        "x": 350,
+        "y": 600,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_8.png": {
+      "frame": {
+        "x": 700,
+        "y": 600,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    },
+    "shoot_9.png": {
+      "frame": {
+        "x": 1050,
+        "y": 600,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      }
+    }
+  },
+  "animations": {
+    "idle": [
+      "idle_0.png",
+      "idle_1.png",
+      "idle_2.png",
+      "idle_3.png",
+      "idle_4.png",
+      "idle_5.png"
+    ],
+    "shoot": [
+      "shoot_0.png",
+      "shoot_1.png",
+      "shoot_2.png",
+      "shoot_3.png",
+      "shoot_4.png",
+      "shoot_5.png",
+      "shoot_6.png",
+      "shoot_7.png",
+      "shoot_8.png",
+      "shoot_9.png"
+    ]
+  },
+  "meta": {
+    "app": "build-penalty-sprites",
+    "version": "1.0",
+    "image": "shooter.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2100,
+      "h": 950
+    },
+    "scale": "1"
+  }
+}

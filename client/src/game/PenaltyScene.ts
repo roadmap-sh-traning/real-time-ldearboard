@@ -13,6 +13,7 @@ import {
   BALL_FRAME_SIZE,
   GOAL_BURST_SIZE,
   KEEPER_FRAME_SIZE,
+  SHOOTER_FRAME_SIZE,
   SPRITE_ASSETS,
 } from "./sprites";
 
@@ -24,13 +25,16 @@ export class PenaltyScene {
   private app: Application | null = null;
   private root = new Container();
   private pitch: Sprite | null = null;
+  private goalImage: Sprite | null = null;
   private goalFrame = new Graphics();
   private zones: Graphics[] = [];
   private ballAnimator: SpriteAnimator | null = null;
   private keeperAnimator: SpriteAnimator | null = null;
+  private shooterAnimator: SpriteAnimator | null = null;
   private burstContainer = new Container();
   private keeperSheet: Spritesheet | null = null;
   private ballSheet: Spritesheet | null = null;
+  private shooterSheet: Spritesheet | null = null;
   private burstSheet: Spritesheet | null = null;
   private enabled = false;
   private kicking = false;
@@ -51,20 +55,29 @@ export class PenaltyScene {
     this.app.stage.addChild(this.root);
 
     const base = import.meta.env.BASE_URL;
-    const [pitchTex, keeperSheet, ballSheet, burstSheet] = await Promise.all([
-      Assets.load<Texture>(`${base}${SPRITE_ASSETS.pitch}`),
-      Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.keeper}`),
-      Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.ball}`),
-      Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.goalBurst}`),
-    ]);
+    const [pitchTex, goalTex, keeperSheet, ballSheet, shooterSheet, burstSheet] =
+      await Promise.all([
+        Assets.load<Texture>(`${base}${SPRITE_ASSETS.pitch}`),
+        Assets.load<Texture>(`${base}${SPRITE_ASSETS.goal}`),
+        Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.keeper}`),
+        Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.ball}`),
+        Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.shooter}`),
+        Assets.load<Spritesheet>(`${base}${SPRITE_ASSETS.goalBurst}`),
+      ]);
 
     this.keeperSheet = keeperSheet;
     this.ballSheet = ballSheet;
+    this.shooterSheet = shooterSheet;
     this.burstSheet = burstSheet;
 
     this.pitch = new Sprite(pitchTex);
     this.pitch.anchor.set(0.5, 0);
     this.root.addChild(this.pitch);
+
+    // Real goal/net (cropped from the rendered ground art) sits in the goal
+    // rect; the faint Graphics frame on top reads as the box outline.
+    this.goalImage = new Sprite(goalTex);
+    this.root.addChild(this.goalImage);
     this.root.addChild(this.goalFrame);
 
     this.buildZones();
@@ -76,6 +89,11 @@ export class PenaltyScene {
     this.ballAnimator = new SpriteAnimator(ballSheet, "idle");
     this.ballAnimator.sprite.animationSpeed = 0.35;
     this.root.addChild(this.ballAnimator.sprite);
+
+    // Penalty taker in the foreground, viewed from behind.
+    this.shooterAnimator = new SpriteAnimator(shooterSheet, "idle");
+    this.shooterAnimator.sprite.animationSpeed = 0.1;
+    this.root.addChild(this.shooterAnimator.sprite);
 
     this.burstContainer.visible = false;
     this.root.addChild(this.burstContainer);
@@ -108,6 +126,11 @@ export class PenaltyScene {
     this.kicking = true;
     this.setInteractive(false);
     this.stopKeeperIdle();
+
+    if (this.shooterAnimator && this.shooterSheet) {
+      this.shooterAnimator.play("shoot", this.shooterSheet, false);
+      this.shooterAnimator.sprite.animationSpeed = 0.3;
+    }
 
     const { width, height } = this.app.screen;
     const goalY = height * 0.14;
@@ -159,6 +182,11 @@ export class PenaltyScene {
     keeper.position.set(width / 2, goalY + goalH + 8);
     this.keeperAnimator.playIdle(this.keeperSheet);
     this.startKeeperIdle();
+
+    if (this.shooterAnimator && this.shooterSheet) {
+      this.shooterAnimator.playIdle(this.shooterSheet);
+      this.shooterAnimator.sprite.animationSpeed = 0.1;
+    }
 
     this.kicking = false;
     this.setInteractive(true);
@@ -230,13 +258,17 @@ export class PenaltyScene {
       this.pitch.position.set(width / 2, goalY - 20);
     }
 
+    if (this.goalImage) {
+      this.goalImage.position.set(goalX, goalY);
+      this.goalImage.width = goalW;
+      this.goalImage.height = goalH;
+    }
+
+    // Real net carries the goal now; keep only a faint outline of the box.
     this.goalFrame.clear();
     this.goalFrame
       .roundRect(0, 0, goalW, goalH, 8)
-      .stroke({ width: 4, color: 0xffffff, alpha: 0.9 });
-    this.goalFrame
-      .roundRect(4, 4, goalW - 8, goalH - 8, 6)
-      .stroke({ width: 2, color: 0xffffff, alpha: 0.35 });
+      .stroke({ width: 2, color: 0xffffff, alpha: 0.25 });
     this.goalFrame.position.set(goalX, goalY);
 
     this.zones.forEach((zone, i) => {
@@ -262,6 +294,13 @@ export class PenaltyScene {
       if (!this.kicking) {
         this.ballAnimator.sprite.position.set(width / 2, spotY);
       }
+    }
+
+    // Foreground penalty taker: feet near the bottom edge, ball just ahead.
+    const shooterScale = Math.min(1.1, (height * 0.4) / SHOOTER_FRAME_SIZE);
+    if (this.shooterAnimator) {
+      this.shooterAnimator.sprite.scale.set(shooterScale);
+      this.shooterAnimator.sprite.position.set(width / 2, height * 0.99);
     }
   }
 

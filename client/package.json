@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "sprites": "node scripts/generate-sprites.mjs"
+    "sprites": "node scripts/generate-sprites.mjs",
+    "sprites:penalty": "node scripts/build-penalty-sprites.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.8.1"
